@@ -62,14 +62,19 @@ html[data-theme="parchment"]{
     repeating-linear-gradient(0deg, transparent 0 28px, rgba(90,70,40,.05) 28px 29px);
 }
 
-*{box-sizing:border-box;}
-html,body{margin:0;height:100%;}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; min-height:100%;}
 body{
   font-family:var(--font-body);
   font-size:15px;
   color:var(--ink);
-  background: var(--bg-decor), var(--bg);
+  background:var(--bg);
   overflow-x:hidden;
+}
+/* decor gradients pinned to the viewport so they never cut off on long/scrolling screens */
+body::before{
+  content:""; position:fixed; inset:0; z-index:-1;
+  background: var(--bg-decor), var(--bg);
 }
 h1,h2,h3{font-family:var(--font-head); font-weight:700; margin:.2em 0; letter-spacing:.3px;}
 
@@ -83,6 +88,7 @@ h1,h2,h3{font-family:var(--font-head); font-weight:700; margin:.2em 0; letter-sp
 .sketch.alt{ border-radius:14px; }
 
 button{
+  touch-action:manipulation;
   font-family:var(--font-body); font-weight:600; font-size:1rem; cursor:pointer;
   padding:.55em 1.2em; color:var(--ink);
   background:var(--paper-dark);
@@ -104,7 +110,8 @@ button:disabled{opacity:.45; cursor:not-allowed; transform:none;}
   .theme-btn{top:6px; right:8px; font-size:.72rem; padding:.35em .7em;}
 }
 
-#app{max-width:1080px; margin:0 auto; padding:18px;}
+/* top padding keeps content clear of the floating theme toggle */
+#app{max-width:1080px; margin:0 auto; padding:52px 18px 18px;}
 
 /* ---------- Screens ---------- */
 .screen{display:none;}
@@ -118,6 +125,7 @@ button:disabled{opacity:.45; cursor:not-allowed; transform:none;}
 .menu-btns button{font-size:1.1rem; padding:.6em 1.4em;}
 
 /* setup cards */
+#screen-setup{padding-bottom:48px;}
 .setup-grid{display:flex; gap:22px; justify-content:center; flex-wrap:wrap; margin-top:10px;}
 .setup-col{flex:1 1 300px; max-width:460px; padding:16px;}
 .choice{padding:10px 14px; margin:10px 0; cursor:pointer; transition:background .12s ease;}
@@ -306,7 +314,7 @@ footer{text-align:center; color:var(--ink-soft); font-size:.9rem; margin:18px 0;
 
 /* ===== mobile (<=760px): fluid board + tap-to-expand info ===== */
 @media (max-width:760px){
-  #app{padding:6px;}
+  #app{padding:44px 6px 6px;}
   .game-grid{grid-template-columns:1fr; gap:6px;}
 
   /* sidebar -> compact grid above the board */
@@ -315,7 +323,7 @@ footer{text-align:center; color:var(--ink-soft); font-size:.9rem; margin:18px 0;
   .side-round-num{font-size:1rem;}
   .side-round .small{display:none;}
   .side-log{grid-column:1 / -1;}
-  #btn-sound,#btn-menu{font-size:.8rem; padding:.45em .6em;}
+  #btn-sound,#btn-menu{font-size:.8rem; padding:.45em .6em; min-height:40px;}
 
   /* collapse passive + log; tap to expand */
   .side-passive{cursor:pointer; position:relative; padding:7px 22px 7px 10px;}
@@ -347,7 +355,8 @@ footer{text-align:center; color:var(--ink-soft); font-size:.9rem; margin:18px 0;
   /* hand: horizontal scroll with fixed compact cards */
   #hand-area{padding:8px 6px;}
   #hand-area h3{font-size:.85rem; margin:0 0 4px;}
-  .hand{flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start; gap:8px; min-height:0; padding:2px 2px 8px; -webkit-overflow-scrolling:touch;}
+  /* hand wraps into rows instead of sideways scrolling */
+  .hand{flex-wrap:wrap; justify-content:center; gap:8px; min-height:0; padding:2px 2px 8px; overflow-x:visible;}
   .hand-card{flex:0 0 auto;}
   .hand-card > .card{width:84px; height:118px;}
   .hand-card > .card .cname{font-size:.62rem;}
@@ -366,7 +375,8 @@ footer{text-align:center; color:var(--ink-soft); font-size:.9rem; margin:18px 0;
   /* title / setup / modals */
   .title-wrap h1{font-size:2rem;}
   .subtitle{font-size:.92rem;}
-  .menu-btns button{font-size:1rem;}
+  .menu-btns{gap:10px;}
+  .menu-btns button{font-size:1rem; min-height:44px; flex:1 1 46%;}
   .setup-grid{gap:12px;}
   .setup-col{padding:10px; flex-basis:100%;}
   .modal{padding:16px; width:95%; max-height:88vh; overflow-y:auto;}
