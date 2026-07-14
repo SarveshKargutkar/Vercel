@@ -1,340 +1,648 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trip Expense Share Calculator</title>
-<link rel="stylesheet" href="styles.css">
-<style>
-  .calc-wrap{max-width:820px; margin:0 auto;}
-  .calc-head{text-align:center; margin-top:2vh;}
-  .calc-head h1{font-size:2.2rem;}
-  .calc-sub{color:var(--ink-soft); margin-bottom:1.4em;}
-  .panel{padding:18px 20px; margin:16px 0;}
-  .panel h2{font-size:1.25rem; border-bottom:2px solid var(--line); padding-bottom:6px; margin-bottom:12px;}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trip Expense Share Calculator &middot; Phoenix Hub</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="theme.js"></script>
+    <style>
+      .calc-wrap {
+        max-width: 820px;
+        margin: 0 auto;
+      }
+      .calc-head {
+        text-align: center;
+        margin-top: 2vh;
+      }
+      .calc-head h1 {
+        font-size: 2.2rem;
+      }
+      .calc-sub {
+        color: var(--ink-soft);
+        margin-bottom: 1.4em;
+      }
+      .panel {
+        padding: 18px 20px;
+        margin: 16px 0;
+      }
+      .panel h2 {
+        font-size: 1.25rem;
+        border-bottom: 2px solid var(--line);
+        padding-bottom: 6px;
+        margin-bottom: 12px;
+      }
 
-  input[type=text], input[type=number]{
-    font-family:'Poppins',system-ui,sans-serif; font-size:1rem; color:var(--ink);
-    background:var(--paper); border:2px solid var(--line); border-radius:6px;
-    padding:.5em .8em; width:100%;
-  }
-  input:focus{outline:2px solid var(--gold);}
-  label.fld{display:block; font-size:.8rem; font-weight:600; color:var(--ink-soft);
-    text-transform:uppercase; letter-spacing:1px; margin:10px 0 4px;}
+      input[type="text"],
+      input[type="number"] {
+        font-family: var(--font-body);
+        font-size: 1rem;
+        color: var(--ink);
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.5em 0.8em;
+        width: 100%;
+      }
+      input:focus {
+        outline: 2px solid var(--gold);
+      }
+      label.fld {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 10px 0 4px;
+      }
 
-  .people-row{display:flex; gap:10px; flex-wrap:wrap;}
-  .people-row input{flex:1 1 260px;}
-  .chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
-  .pchip{padding:4px 14px; border:2px solid var(--line); border-radius:20px;
-    background:var(--paper-dark); font-weight:600;}
+      .people-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .people-row input {
+        flex: 1 1 260px;
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .pchip {
+        padding: 4px 14px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--paper-dark);
+        font-weight: 600;
+      }
 
-  .who-grid{display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;}
-  .who{padding:5px 14px; border:2px solid var(--line); border-radius:20px;
-    background:var(--paper); cursor:pointer; font-weight:600; user-select:none;
-    transition:background .12s ease;}
-  .who.on{background:var(--green); color:#fff;}
-  .who.all{background:var(--paper-dark);}
-  .who.all.on{background:var(--gold); color:#fff;}
+      .who-grid {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+      }
+      .who {
+        padding: 5px 14px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--paper);
+        cursor: pointer;
+        font-weight: 600;
+        user-select: none;
+        transition: background 0.12s ease;
+      }
+      .who.on {
+        background: var(--green);
+        color: #fff;
+      }
+      .who.all {
+        background: var(--paper-dark);
+      }
+      .who.all.on {
+        background: var(--gold);
+        color: #fff;
+      }
 
-  select{
-    font-family:'Poppins',system-ui,sans-serif; font-size:1rem; color:var(--ink);
-    background:var(--paper); border:2px solid var(--line); border-radius:6px;
-    padding:.5em .8em; width:100%; cursor:pointer;
-  }
-  .exp-form-row{display:flex; gap:12px; flex-wrap:wrap;}
-  .exp-form-row > div{flex:1 1 180px;}
+      select {
+        font-family: var(--font-body);
+        font-size: 1rem;
+        color: var(--ink);
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.5em 0.8em;
+        width: 100%;
+        cursor: pointer;
+      }
+      .exp-form-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .exp-form-row > div {
+        flex: 1 1 180px;
+      }
 
-  .exp-item{display:flex; align-items:center; gap:10px; padding:8px 10px; margin:8px 0;
-    background:var(--paper-dark); border:2px solid var(--line); border-radius:6px; flex-wrap:wrap;}
-  .exp-item .amt{font-family:'Cinzel',serif; font-weight:700; color:var(--red); font-size:1.05rem; min-width:84px;}
-  .exp-item .desc{flex:1 1 200px;}
-  .exp-item .desc b{color:var(--blue);}
-  .exp-item .share{font-size:.82rem; color:var(--ink-soft); flex-basis:100%;}
-  .exp-item button{padding:.25em .7em; font-size:.85rem;}
-  .exp-item.editing{outline:3px solid var(--gold);}
+      .exp-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        margin: 8px 0;
+        background: var(--paper-dark);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        flex-wrap: wrap;
+      }
+      .exp-item .amt {
+        font-family: var(--font-head);
+        font-weight: 700;
+        color: var(--red);
+        font-size: 1.05rem;
+        min-width: 84px;
+      }
+      .exp-item .desc {
+        flex: 1 1 200px;
+      }
+      .exp-item .desc b {
+        color: var(--blue);
+      }
+      .exp-item .share {
+        font-size: 0.82rem;
+        color: var(--ink-soft);
+        flex-basis: 100%;
+      }
+      .exp-item button {
+        padding: 0.25em 0.7em;
+        font-size: 0.85rem;
+      }
+      .exp-item.editing {
+        outline: 3px solid var(--gold);
+      }
 
-  table.bal{width:100%; border-collapse:collapse; margin-top:6px;}
-  table.bal th, table.bal td{border:2px solid var(--line); padding:6px 10px; text-align:right;}
-  table.bal th{background:var(--paper-dark); font-family:'Cinzel',serif; letter-spacing:.5px;}
-  table.bal td:first-child, table.bal th:first-child{text-align:left;}
-  .pos{color:var(--green); font-weight:700;}
-  .neg{color:var(--red); font-weight:700;}
+      table.bal {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 6px;
+      }
+      table.bal th,
+      table.bal td {
+        border: 1px solid var(--line);
+        padding: 6px 10px;
+        text-align: right;
+      }
+      table.bal th {
+        background: var(--paper-dark);
+        font-family: var(--font-head);
+        letter-spacing: 0.5px;
+      }
+      table.bal td:first-child,
+      table.bal th:first-child {
+        text-align: left;
+      }
+      .pos {
+        color: var(--green);
+        font-weight: 700;
+      }
+      .neg {
+        color: var(--red);
+        font-weight: 700;
+      }
 
-  .settle-line{display:flex; align-items:center; gap:10px; padding:10px 12px; margin:8px 0;
-    border:2px solid var(--line); border-radius:6px; background:var(--paper-dark); font-size:1.05rem;}
-  .settle-line .arrow{color:var(--gold); font-weight:700;}
-  .settle-line b.rupee{font-family:'Cinzel',serif; color:var(--red); margin-left:auto; font-size:1.15rem;}
-  .all-square{text-align:center; color:var(--green); font-weight:700; padding:8px;}
-  .muted{color:var(--ink-soft); font-size:.9rem;}
-  .topnav{display:flex; justify-content:space-between; align-items:center; margin-top:10px;}
-  .hidden{display:none;}
-  .err{color:var(--red); font-size:.85rem; font-weight:600; min-height:1.2em; margin-top:4px;}
-  @media (max-width:760px){ .calc-head h1{font-size:1.5rem;} .panel{padding:12px;} }
-</style>
-</head>
-<body>
-<div id="app">
-  <div class="calc-wrap">
-    <div class="topnav">
-      <button onclick="location.href='index.html'">&larr; Home</button>
-      <button id="btn-reset">Reset Trip</button>
-    </div>
-    <div class="calc-head">
-      <h1>Trip Expense Share Calculator</h1>
-      <div class="calc-sub">log who paid for whom &middot; settle with the fewest payments</div>
-    </div>
-
-    <!-- STEP 1: PEOPLE -->
-    <div class="panel sketch" id="panel-people">
-      <h2>1 &middot; Who went on the trip?</h2>
-      <div class="people-row">
-        <input type="text" id="inp-names" placeholder="names, comma or space separated &mdash; e.g. Sarvesh, Reuben Rishav Pushkar">
-        <button id="btn-add-people">Add</button>
-      </div>
-      <div class="err" id="err-names"></div>
-      <div class="chips" id="chips-people"></div>
-    </div>
-
-    <!-- STEP 2: EXPENSES -->
-    <div class="panel sketch hidden" id="panel-expense">
-      <h2>2 &middot; Add expenses</h2>
-      <div class="exp-form-row">
-        <div>
-          <label class="fld">Who paid?</label>
-          <select id="sel-payer"></select>
+      .settle-line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        margin: 8px 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper-dark);
+        font-size: 1.05rem;
+      }
+      .settle-line .arrow {
+        color: var(--gold);
+        font-weight: 700;
+      }
+      .settle-line b.rupee {
+        font-family: var(--font-head);
+        color: var(--red);
+        margin-left: auto;
+        font-size: 1.15rem;
+      }
+      .all-square {
+        text-align: center;
+        color: var(--green);
+        font-weight: 700;
+        padding: 8px;
+      }
+      .muted {
+        color: var(--ink-soft);
+        font-size: 0.9rem;
+      }
+      .topnav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 48px; /* keep clear of the floating theme toggle */
+      }
+      .hidden {
+        display: none;
+      }
+      .err {
+        color: var(--red);
+        font-size: 0.85rem;
+        font-weight: 600;
+        min-height: 1.2em;
+        margin-top: 4px;
+      }
+      @media (max-width: 760px) {
+        .calc-head h1 {
+          font-size: 1.5rem;
+        }
+        .panel {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="calc-wrap">
+        <div class="topnav">
+          <button onclick="location.href = 'index.html'">&larr; Home</button>
+          <button id="btn-reset">Reset Trip</button>
         </div>
-        <div>
-          <label class="fld">Amount (&#8377;)</label>
-          <input type="number" id="inp-amount" min="0" step="0.01" placeholder="2000">
+        <div class="calc-head">
+          <h1>Trip Expense Share Calculator</h1>
+          <div class="calc-sub">
+            log who paid for whom &middot; settle with the fewest payments
+          </div>
         </div>
-        <div>
-          <label class="fld">For what?</label>
-          <input type="text" id="inp-desc" placeholder="food, hotel, petrol...">
+
+        <!-- STEP 1: PEOPLE -->
+        <div class="panel sketch" id="panel-people">
+          <h2>1 &middot; Who went on the trip?</h2>
+          <div class="people-row">
+            <input
+              type="text"
+              id="inp-names"
+              placeholder="names, comma or space separated &mdash; e.g. Sarvesh, Phoenix Chinmay Vihaan"
+            />
+            <button id="btn-add-people">Add</button>
+          </div>
+          <div class="err" id="err-names"></div>
+          <div class="chips" id="chips-people"></div>
         </div>
+
+        <!-- STEP 2: EXPENSES -->
+        <div class="panel sketch hidden" id="panel-expense">
+          <h2>2 &middot; Add expenses</h2>
+          <div class="exp-form-row">
+            <div>
+              <label class="fld">Who paid?</label>
+              <select id="sel-payer"></select>
+            </div>
+            <div>
+              <label class="fld">Amount (&#8377;)</label>
+              <input
+                type="number"
+                id="inp-amount"
+                min="0"
+                step="0.01"
+                placeholder="2000"
+              />
+            </div>
+            <div>
+              <label class="fld">For what?</label>
+              <input
+                type="text"
+                id="inp-desc"
+                placeholder="food, hotel, petrol..."
+              />
+            </div>
+          </div>
+          <label class="fld">For whom?</label>
+          <div class="who-grid" id="who-grid"></div>
+          <div class="err" id="err-exp"></div>
+          <div class="mt center">
+            <button id="btn-add-exp">Add Expense</button>
+            <button id="btn-cancel-edit" class="hidden">Cancel Edit</button>
+          </div>
+        </div>
+
+        <!-- EXPENSE LIST -->
+        <div class="panel sketch alt hidden" id="panel-list">
+          <h2>Expenses <span class="muted" id="exp-total"></span></h2>
+          <div id="exp-list"></div>
+        </div>
+
+        <!-- STEP 3: RESULT -->
+        <div class="panel sketch hidden" id="panel-result">
+          <h2>3 &middot; Settle up</h2>
+          <h3 class="muted" style="margin-top: 0">Balances</h3>
+          <table class="bal">
+            <thead>
+              <tr>
+                <th>Person</th>
+                <th>Paid</th>
+                <th>Share</th>
+                <th>Net</th>
+              </tr>
+            </thead>
+            <tbody id="bal-body"></tbody>
+          </table>
+          <h3 class="muted">Simplified payments</h3>
+          <div id="settle-list"></div>
+        </div>
+
+        <footer>
+          shares are split equally among the chosen people &middot; payments
+          minimised so there's no back &amp; forth.
+        </footer>
       </div>
-      <label class="fld">For whom?</label>
-      <div class="who-grid" id="who-grid"></div>
-      <div class="err" id="err-exp"></div>
-      <div class="mt center">
-        <button id="btn-add-exp">Add Expense</button>
-        <button id="btn-cancel-edit" class="hidden">Cancel Edit</button>
-      </div>
     </div>
 
-    <!-- EXPENSE LIST -->
-    <div class="panel sketch alt hidden" id="panel-list">
-      <h2>Expenses <span class="muted" id="exp-total"></span></h2>
-      <div id="exp-list"></div>
-    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        const rup = (p) =>
+          "₹" +
+          (p / 100).toLocaleString("en-IN", {
+            minimumFractionDigits: p % 100 ? 2 : 0,
+            maximumFractionDigits: 2,
+          });
 
-    <!-- STEP 3: RESULT -->
-    <div class="panel sketch hidden" id="panel-result">
-      <h2>3 &middot; Settle up</h2>
-      <h3 class="muted" style="margin-top:0">Balances</h3>
-      <table class="bal">
-        <thead><tr><th>Person</th><th>Paid</th><th>Share</th><th>Net</th></tr></thead>
-        <tbody id="bal-body"></tbody>
-      </table>
-      <h3 class="muted">Simplified payments</h3>
-      <div id="settle-list"></div>
-    </div>
+        let people = []; // names
+        let expenses = []; // {payer, paise, desc, forWhom:[names]}
+        let editIdx = -1; // index of expense being edited, -1 = adding new
 
-    <footer>shares are split equally among the chosen people &middot; payments minimised so there's no back &amp; forth.</footer>
-  </div>
-</div>
+        // ---------- persistence ----------
+        function save() {
+          try {
+            localStorage.setItem(
+              "tripcalc",
+              JSON.stringify({ people, expenses }),
+            );
+          } catch (e) {}
+        }
+        function load() {
+          try {
+            const d = JSON.parse(localStorage.getItem("tripcalc"));
+            if (d && Array.isArray(d.people)) {
+              people = d.people;
+              expenses = d.expenses || [];
+            }
+          } catch (e) {}
+        }
 
-<script>
-(function(){
-  const $ = id => document.getElementById(id);
-  const rup = p => '₹' + (p/100).toLocaleString('en-IN', {minimumFractionDigits: (p%100? 2:0), maximumFractionDigits:2});
+        // ---------- people ----------
+        function addPeople() {
+          const raw = $("inp-names").value.trim();
+          if (!raw) {
+            $("err-names").textContent = "Type at least one name.";
+            return;
+          }
+          const names = raw
+            .split(/[\s,]+/)
+            .filter(Boolean)
+            .map((n) => n[0].toUpperCase() + n.slice(1).toLowerCase());
+          let added = 0;
+          for (const n of names) {
+            if (!people.some((p) => p.toLowerCase() === n.toLowerCase())) {
+              people.push(n);
+              added++;
+            }
+          }
+          $("err-names").textContent = added
+            ? ""
+            : "Those names are already added.";
+          $("inp-names").value = "";
+          save();
+          render();
+        }
 
-  let people = [];      // names
-  let expenses = [];    // {payer, paise, desc, forWhom:[names]}
-  let editIdx = -1;     // index of expense being edited, -1 = adding new
+        // ---------- expenses ----------
+        function selectedWhom() {
+          return [...document.querySelectorAll("#who-grid .who.person.on")].map(
+            (el) => el.dataset.name,
+          );
+        }
+        function addExpense() {
+          const payer = $("sel-payer").value;
+          const amt = parseFloat($("inp-amount").value);
+          const desc = $("inp-desc").value.trim() || "expense";
+          const whom = selectedWhom();
+          if (!payer || !(amt > 0)) {
+            $("err-exp").textContent = "Enter a valid amount.";
+            return;
+          }
+          if (whom.length === 0) {
+            $("err-exp").textContent = "Pick at least one person it was for.";
+            return;
+          }
+          $("err-exp").textContent = "";
+          const exp = {
+            payer,
+            paise: Math.round(amt * 100),
+            desc,
+            forWhom: whom,
+          };
+          if (editIdx >= 0) {
+            expenses[editIdx] = exp;
+          } else {
+            expenses.push(exp);
+          }
+          stopEdit();
+          save();
+          render();
+        }
+        function removeExpense(i) {
+          expenses.splice(i, 1);
+          if (editIdx === i) stopEdit();
+          else if (editIdx > i) editIdx--;
+          save();
+          render();
+        }
+        function editExpense(i) {
+          editIdx = i;
+          const e = expenses[i];
+          render(); // rebuild chips first, then fill the form
+          $("sel-payer").value = e.payer;
+          $("inp-amount").value = e.paise / 100;
+          $("inp-desc").value = e.desc;
+          document
+            .querySelectorAll("#who-grid .who.person")
+            .forEach((el) =>
+              el.classList.toggle("on", e.forWhom.includes(el.dataset.name)),
+            );
+          const allOn = [
+            ...document.querySelectorAll("#who-grid .who.person"),
+          ].every((el) => el.classList.contains("on"));
+          $("who-all").classList.toggle("on", allOn);
+          $("btn-add-exp").textContent = "Save Changes";
+          $("btn-cancel-edit").classList.remove("hidden");
+          $("panel-expense").scrollIntoView({ behavior: "smooth" });
+        }
+        function stopEdit() {
+          editIdx = -1;
+          $("inp-amount").value = "";
+          $("inp-desc").value = "";
+          $("btn-add-exp").textContent = "Add Expense";
+          $("btn-cancel-edit").classList.add("hidden");
+        }
 
-  // ---------- persistence ----------
-  function save(){ try{ localStorage.setItem('tripcalc', JSON.stringify({people, expenses})); }catch(e){} }
-  function load(){
-    try{
-      const d = JSON.parse(localStorage.getItem('tripcalc'));
-      if(d && Array.isArray(d.people)){ people = d.people; expenses = d.expenses || []; }
-    }catch(e){}
-  }
+        // ---------- math ----------
+        // per person: paid, share (both in paise). Share of one expense = paise/n,
+        // remainder paise spread over the first few beneficiaries so totals always match.
+        function computeBalances() {
+          const paid = {},
+            share = {};
+          people.forEach((p) => {
+            paid[p] = 0;
+            share[p] = 0;
+          });
+          for (const e of expenses) {
+            if (!(e.payer in paid)) continue;
+            paid[e.payer] += e.paise;
+            const ben = e.forWhom.filter((w) => w in share);
+            const base = Math.floor(e.paise / ben.length);
+            let rem = e.paise - base * ben.length;
+            ben.forEach((w) => {
+              share[w] += base + (rem-- > 0 ? 1 : 0);
+            });
+          }
+          return { paid, share };
+        }
+        // greedy settlement: biggest debtor pays biggest creditor
+        function settle(net) {
+          const debtors = [],
+            creditors = [];
+          for (const p of people) {
+            if (net[p] < 0) debtors.push({ p, v: -net[p] });
+            else if (net[p] > 0) creditors.push({ p, v: net[p] });
+          }
+          debtors.sort((a, b) => b.v - a.v);
+          creditors.sort((a, b) => b.v - a.v);
+          const out = [];
+          let i = 0,
+            j = 0;
+          while (i < debtors.length && j < creditors.length) {
+            const pay = Math.min(debtors[i].v, creditors[j].v);
+            if (pay > 0)
+              out.push({ from: debtors[i].p, to: creditors[j].p, paise: pay });
+            debtors[i].v -= pay;
+            creditors[j].v -= pay;
+            if (debtors[i].v === 0) i++;
+            if (creditors[j].v === 0) j++;
+          }
+          return out;
+        }
 
-  // ---------- people ----------
-  function addPeople(){
-    const raw = $('inp-names').value.trim();
-    if(!raw){ $('err-names').textContent = 'Type at least one name.'; return; }
-    const names = raw.split(/[\s,]+/).filter(Boolean)
-      .map(n => n[0].toUpperCase() + n.slice(1).toLowerCase());
-    let added = 0;
-    for(const n of names){
-      if(!people.some(p => p.toLowerCase() === n.toLowerCase())){ people.push(n); added++; }
-    }
-    $('err-names').textContent = added ? '' : 'Those names are already added.';
-    $('inp-names').value = '';
-    save(); render();
-  }
+        // ---------- render ----------
+        function render() {
+          // chips
+          $("chips-people").innerHTML = people
+            .map((p) => `<span class="pchip">${p}</span>`)
+            .join("");
+          const hasPeople = people.length >= 2;
+          $("panel-expense").classList.toggle("hidden", !hasPeople);
+          $("panel-list").classList.toggle("hidden", expenses.length === 0);
+          $("panel-result").classList.toggle("hidden", expenses.length === 0);
+          if (people.length === 1)
+            $("err-names").textContent = "Add at least one more traveller.";
 
-  // ---------- expenses ----------
-  function selectedWhom(){
-    return [...document.querySelectorAll('#who-grid .who.person.on')].map(el => el.dataset.name);
-  }
-  function addExpense(){
-    const payer = $('sel-payer').value;
-    const amt = parseFloat($('inp-amount').value);
-    const desc = $('inp-desc').value.trim() || 'expense';
-    const whom = selectedWhom();
-    if(!payer || !(amt > 0)){ $('err-exp').textContent = 'Enter a valid amount.'; return; }
-    if(whom.length === 0){ $('err-exp').textContent = 'Pick at least one person it was for.'; return; }
-    $('err-exp').textContent = '';
-    const exp = {payer, paise: Math.round(amt*100), desc, forWhom: whom};
-    if(editIdx >= 0){ expenses[editIdx] = exp; } else { expenses.push(exp); }
-    stopEdit();
-    save(); render();
-  }
-  function removeExpense(i){
-    expenses.splice(i,1);
-    if(editIdx === i) stopEdit(); else if(editIdx > i) editIdx--;
-    save(); render();
-  }
-  function editExpense(i){
-    editIdx = i;
-    const e = expenses[i];
-    render(); // rebuild chips first, then fill the form
-    $('sel-payer').value = e.payer;
-    $('inp-amount').value = e.paise/100;
-    $('inp-desc').value = e.desc;
-    document.querySelectorAll('#who-grid .who.person').forEach(el =>
-      el.classList.toggle('on', e.forWhom.includes(el.dataset.name)));
-    const allOn = [...document.querySelectorAll('#who-grid .who.person')].every(el => el.classList.contains('on'));
-    $('who-all').classList.toggle('on', allOn);
-    $('btn-add-exp').textContent = 'Save Changes';
-    $('btn-cancel-edit').classList.remove('hidden');
-    $('panel-expense').scrollIntoView({behavior:'smooth'});
-  }
-  function stopEdit(){
-    editIdx = -1;
-    $('inp-amount').value = ''; $('inp-desc').value = '';
-    $('btn-add-exp').textContent = 'Add Expense';
-    $('btn-cancel-edit').classList.add('hidden');
-  }
+          // payer select + who chips (default all on)
+          $("sel-payer").innerHTML = people
+            .map((p) => `<option>${p}</option>`)
+            .join("");
+          $("who-grid").innerHTML =
+            `<span class="who all on" id="who-all">Everyone</span>` +
+            people
+              .map(
+                (p) =>
+                  `<span class="who person on" data-name="${p}">${p}</span>`,
+              )
+              .join("");
+          $("who-all").onclick = function () {
+            const on = !this.classList.contains("on");
+            this.classList.toggle("on", on);
+            document
+              .querySelectorAll("#who-grid .who.person")
+              .forEach((el) => el.classList.toggle("on", on));
+          };
+          document.querySelectorAll("#who-grid .who.person").forEach((el) => {
+            el.onclick = () => {
+              el.classList.toggle("on");
+              const allOn = [
+                ...document.querySelectorAll("#who-grid .who.person"),
+              ].every((e) => e.classList.contains("on"));
+              $("who-all").classList.toggle("on", allOn);
+            };
+          });
 
-  // ---------- math ----------
-  // per person: paid, share (both in paise). Share of one expense = paise/n,
-  // remainder paise spread over the first few beneficiaries so totals always match.
-  function computeBalances(){
-    const paid = {}, share = {};
-    people.forEach(p => { paid[p]=0; share[p]=0; });
-    for(const e of expenses){
-      if(!(e.payer in paid)) continue;
-      paid[e.payer] += e.paise;
-      const ben = e.forWhom.filter(w => w in share);
-      const base = Math.floor(e.paise / ben.length);
-      let rem = e.paise - base*ben.length;
-      ben.forEach(w => { share[w] += base + (rem-- > 0 ? 1 : 0); });
-    }
-    return {paid, share};
-  }
-  // greedy settlement: biggest debtor pays biggest creditor
-  function settle(net){
-    const debtors = [], creditors = [];
-    for(const p of people){
-      if(net[p] < 0) debtors.push({p, v:-net[p]});
-      else if(net[p] > 0) creditors.push({p, v:net[p]});
-    }
-    debtors.sort((a,b)=>b.v-a.v); creditors.sort((a,b)=>b.v-a.v);
-    const out = [];
-    let i=0, j=0;
-    while(i<debtors.length && j<creditors.length){
-      const pay = Math.min(debtors[i].v, creditors[j].v);
-      if(pay > 0) out.push({from:debtors[i].p, to:creditors[j].p, paise:pay});
-      debtors[i].v -= pay; creditors[j].v -= pay;
-      if(debtors[i].v === 0) i++;
-      if(creditors[j].v === 0) j++;
-    }
-    return out;
-  }
-
-  // ---------- render ----------
-  function render(){
-    // chips
-    $('chips-people').innerHTML = people.map(p => `<span class="pchip">${p}</span>`).join('');
-    const hasPeople = people.length >= 2;
-    $('panel-expense').classList.toggle('hidden', !hasPeople);
-    $('panel-list').classList.toggle('hidden', expenses.length === 0);
-    $('panel-result').classList.toggle('hidden', expenses.length === 0);
-    if(people.length === 1) $('err-names').textContent = 'Add at least one more traveller.';
-
-    // payer select + who chips (default all on)
-    $('sel-payer').innerHTML = people.map(p => `<option>${p}</option>`).join('');
-    $('who-grid').innerHTML =
-      `<span class="who all on" id="who-all">Everyone</span>` +
-      people.map(p => `<span class="who person on" data-name="${p}">${p}</span>`).join('');
-    $('who-all').onclick = function(){
-      const on = !this.classList.contains('on');
-      this.classList.toggle('on', on);
-      document.querySelectorAll('#who-grid .who.person').forEach(el => el.classList.toggle('on', on));
-    };
-    document.querySelectorAll('#who-grid .who.person').forEach(el => {
-      el.onclick = () => {
-        el.classList.toggle('on');
-        const allOn = [...document.querySelectorAll('#who-grid .who.person')].every(e => e.classList.contains('on'));
-        $('who-all').classList.toggle('on', allOn);
-      };
-    });
-
-    // expense list
-    let tot = 0;
-    $('exp-list').innerHTML = expenses.map((e,i) => {
-      tot += e.paise;
-      const each = Math.floor(e.paise / e.forWhom.length);
-      return `<div class="exp-item${i===editIdx?' editing':''}">
+          // expense list
+          let tot = 0;
+          $("exp-list").innerHTML = expenses
+            .map((e, i) => {
+              tot += e.paise;
+              const each = Math.floor(e.paise / e.forWhom.length);
+              return `<div class="exp-item${i === editIdx ? " editing" : ""}">
         <span class="amt">${rup(e.paise)}</span>
-        <span class="desc"><b>${e.payer}</b> paid for ${e.desc} &mdash; for ${e.forWhom.join(', ')}</span>
+        <span class="desc"><b>${e.payer}</b> paid for ${e.desc} &mdash; for ${e.forWhom.join(", ")}</span>
         <button data-edit="${i}" title="Edit">&#9998;</button>
         <button data-del="${i}" title="Delete">&times;</button>
-        <span class="share">${rup(each)} each (${e.forWhom.length} ${e.forWhom.length>1?'people':'person'})</span>
+        <span class="share">${rup(each)} each (${e.forWhom.length} ${e.forWhom.length > 1 ? "people" : "person"})</span>
       </div>`;
-    }).join('');
-    $('exp-total').textContent = expenses.length ? '· total ' + rup(tot) : '';
-    document.querySelectorAll('#exp-list [data-del]').forEach(b => b.onclick = () => removeExpense(+b.dataset.del));
-    document.querySelectorAll('#exp-list [data-edit]').forEach(b => b.onclick = () => editExpense(+b.dataset.edit));
+            })
+            .join("");
+          $("exp-total").textContent = expenses.length
+            ? "· total " + rup(tot)
+            : "";
+          document
+            .querySelectorAll("#exp-list [data-del]")
+            .forEach((b) => (b.onclick = () => removeExpense(+b.dataset.del)));
+          document
+            .querySelectorAll("#exp-list [data-edit]")
+            .forEach((b) => (b.onclick = () => editExpense(+b.dataset.edit)));
 
-    // balances + settlements
-    if(expenses.length){
-      const {paid, share} = computeBalances();
-      const net = {};
-      $('bal-body').innerHTML = people.map(p => {
-        net[p] = paid[p] - share[p];
-        const cls = net[p] > 0 ? 'pos' : net[p] < 0 ? 'neg' : '';
-        const sign = net[p] > 0 ? 'gets ' : net[p] < 0 ? 'owes ' : '';
-        return `<tr><td>${p}</td><td>${rup(paid[p])}</td><td>${rup(share[p])}</td>
+          // balances + settlements
+          if (expenses.length) {
+            const { paid, share } = computeBalances();
+            const net = {};
+            $("bal-body").innerHTML = people
+              .map((p) => {
+                net[p] = paid[p] - share[p];
+                const cls = net[p] > 0 ? "pos" : net[p] < 0 ? "neg" : "";
+                const sign = net[p] > 0 ? "gets " : net[p] < 0 ? "owes " : "";
+                return `<tr><td>${p}</td><td>${rup(paid[p])}</td><td>${rup(share[p])}</td>
           <td class="${cls}">${sign}${rup(Math.abs(net[p]))}</td></tr>`;
-      }).join('');
-      const tx = settle(net);
-      $('settle-list').innerHTML = tx.length
-        ? tx.map(t => `<div class="settle-line"><b>${t.from}</b>
+              })
+              .join("");
+            const tx = settle(net);
+            $("settle-list").innerHTML = tx.length
+              ? tx
+                  .map(
+                    (t) => `<div class="settle-line"><b>${t.from}</b>
             <span class="arrow">pays &rarr;</span> <b>${t.to}</b>
-            <b class="rupee">${rup(t.paise)}</b></div>`).join('')
-        : `<div class="all-square">All square &mdash; nobody owes anything!</div>`;
-    }
-  }
+            <b class="rupee">${rup(t.paise)}</b></div>`,
+                  )
+                  .join("")
+              : `<div class="all-square">All square &mdash; nobody owes anything!</div>`;
+          }
+        }
 
-  // ---------- wire up ----------
-  $('btn-add-people').onclick = addPeople;
-  $('inp-names').addEventListener('keydown', e => { if(e.key === 'Enter') addPeople(); });
-  $('btn-add-exp').onclick = addExpense;
-  $('btn-cancel-edit').onclick = () => { stopEdit(); render(); };
-  $('inp-desc').addEventListener('keydown', e => { if(e.key === 'Enter') addExpense(); });
-  $('btn-reset').onclick = () => {
-    if(confirm('Clear all travellers and expenses?')){
-      people = []; expenses = []; stopEdit(); save(); render();
-    }
-  };
+        // ---------- wire up ----------
+        $("btn-add-people").onclick = addPeople;
+        $("inp-names").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") addPeople();
+        });
+        $("btn-add-exp").onclick = addExpense;
+        $("btn-cancel-edit").onclick = () => {
+          stopEdit();
+          render();
+        };
+        $("inp-desc").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") addExpense();
+        });
+        $("btn-reset").onclick = () => {
+          if (confirm("Clear all travellers and expenses?")) {
+            people = [];
+            expenses = [];
+            stopEdit();
+            save();
+            render();
+          }
+        };
 
-  load(); render();
-})();
-</script>
-</body>
+        load();
+        render();
+      })();
+    </script>
+  </body>
 </html>
