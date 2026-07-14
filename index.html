@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Unfolding &mdash; Home</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .home-wrap{text-align:center; margin-top:6vh;}
+  .home-wrap h1{font-size:3rem; letter-spacing:2px;}
+  .home-sub{font-size:1.1rem; color:var(--ink-soft); margin-bottom:2.2em; letter-spacing:.5px;}
+  .home-cards{display:flex; gap:26px; justify-content:center; flex-wrap:wrap; padding:0 10px;}
+  .home-card{
+    flex:1 1 300px; max-width:400px; padding:26px 22px; text-decoration:none; color:var(--ink);
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    transition:transform .12s ease, box-shadow .12s ease; cursor:pointer;
+  }
+  .home-card:hover{transform:translateY(-5px); box-shadow:0 6px 14px rgba(0,0,0,.2); background:var(--paper-dark);}
+  .home-card .icon{font-size:3rem; line-height:1;}
+  .home-card h2{font-size:1.5rem; margin:0;}
+  .home-card p{margin:0; font-size:.95rem; color:var(--ink-soft);}
+  .home-card .go{margin-top:8px; font-weight:700; color:var(--gold); font-family:'Cinzel',serif; letter-spacing:1px;}
+  @media (max-width:760px){ .home-wrap h1{font-size:2rem;} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="home-wrap">
+    <h1>The Unfolding</h1>
+    <div class="home-sub">pick your quest, traveller</div>
+    <div class="home-cards">
+      <a class="home-card sketch" href="calculator.html">
+        <div class="icon">&#129534;</div>
+        <h2>Trip Expense Share Calculator</h2>
+        <p>Split trip costs fairly. Log who paid for what &amp; for whom, then settle up with the fewest payments.</p>
+        <div class="go">Open &rarr;</div>
+      </a>
+      <a class="home-card sketch alt" href="game.html">
+        <div class="icon">&#9876;&#65039;</div>
+        <h2>The Unfolding Battle</h2>
+        <p>A hand-drawn duel of wits &amp; cards. Place cards into 3 slots, reveal, and out-power your foe.</p>
+        <div class="go">Play &rarr;</div>
+      </a>
+    </div>
+  </div>
+  <footer>two tools, one parchment.</footer>
+</div>
+</body>
+</html>

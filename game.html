@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Unfolding Battle</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE -->
+  <section id="screen-title" class="screen active">
+    <div class="title-wrap">
+      <h1>The Unfolding Battle</h1>
+      <div class="subtitle">a hand-drawn duel of wits &amp; cards</div>
+      <div class="menu-btns">
+        <button data-mode="pvc">Campaign (vs Computer)</button>
+        <button data-mode="pvp">Local Duel (2 Players)</button>
+        <button id="btn-rules">How to Play</button>
+        <button onclick="location.href='index.html'">Home</button>
+      </div>
+    </div>
+    <footer>Place cards into 3 slots &middot; reveal slot-by-slot &middot; out-power your foe.</footer>
+  </section>
+
+  <!-- SETUP -->
+  <section id="screen-setup" class="screen">
+    <h2 class="center" id="setup-title">Choose your Hero &amp; Passive</h2>
+    <div class="center small" id="setup-who"></div>
+    <div class="setup-grid">
+      <div class="setup-col sketch">
+        <h3 class="center">Hero</h3>
+        <div id="hero-list"></div>
+      </div>
+      <div class="setup-col sketch alt">
+        <h3 class="center">Passive Power</h3>
+        <div id="passive-list"></div>
+      </div>
+    </div>
+    <div class="center mt">
+      <button id="btn-confirm-setup" disabled>Confirm</button>
+      <button id="btn-back-title">Back</button>
+    </div>
+  </section>
+
+  <!-- CAMPAIGN MAP -->
+  <section id="screen-map" class="screen">
+    <h2 class="center">Campaign Map</h2>
+    <div class="center small" id="map-sub"></div>
+    <div class="map-path" id="map-nodes"></div>
+    <div class="map-deck sketch">
+      <h3 class="center">Your Deck</h3>
+      <div class="reward-row deck-strip" id="map-deck-strip"></div>
+    </div>
+    <div class="center mt"><button id="map-menu">Quit to Menu</button></div>
+  </section>
+
+  <!-- GAME -->
+  <section id="screen-game" class="screen">
+    <div class="game-grid">
+      <!-- left sidebar: round + passives + log -->
+      <aside class="side-panel">
+        <div class="side-round sketch" id="side-round"></div>
+        <div class="side-passive sketch" id="side-passive-opp"></div>
+        <div class="side-passive sketch" id="side-passive-me"></div>
+        <div class="side-log sketch">
+          <div class="side-log-title">Battle Log</div>
+          <div id="log"></div>
+        </div>
+        <button id="btn-sound">Sound: On</button>
+        <button id="btn-menu">Quit to Menu</button>
+      </aside>
+
+      <!-- main board -->
+      <div class="board-area">
+        <div class="player-strip sketch" id="strip-top"></div>
+        <div class="slots-row" id="slots-top"></div>
+        <div class="vs-line">~ the line of battle ~</div>
+        <div class="slots-row" id="slots-bottom"></div>
+        <div class="player-strip sketch alt" id="strip-bottom"></div>
+        <div id="turn-banner"></div>
+        <div id="hand-area">
+          <h3 id="hand-label">Your Hand</h3>
+          <div class="hand" id="hand"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- overlays -->
+<div class="overlay" id="overlay">
+  <div class="modal sketch" id="modal-body"></div>
+</div>
+
+<script src="cards.js"></script>
+<script src="game.js"></script>
+<script src="ai.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
