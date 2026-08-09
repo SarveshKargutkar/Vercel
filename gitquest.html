@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitQuest &middot; Phoenix Hub</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="styles.css">
+<script src="theme.js"></script>
+<link rel="stylesheet" href="gitquest.css">
+</head>
+<body>
+<div id="app" class="gq">
+
+  <!-- LANDING -->
+  <section id="gq-landing" class="gq-landing">
+    <div class="gq-logo">Git<span class="q">Quest</span></div>
+    <div class="gq-tag">learn Git by playing &middot; type real commands &middot; watch them come alive</div>
+    <div class="gq-menu">
+      <button class="primary" id="gq-start">&#9654; Start Learning</button>
+      <button id="gq-continue">Continue Progress</button>
+      <button id="gq-levels">Level Select</button>
+      <button id="gq-sandbox-btn">Sandbox Mode</button>
+      <button onclick="location.href='index.html'">&larr; Phoenix Hub</button>
+    </div>
+    <div class="gq-stats-strip" id="gq-strip"></div>
+  </section>
+
+  <!-- LEVEL MAP -->
+  <section id="gq-map" class="gq-map gq-hidden">
+    <div class="gq-map-head">
+      <button id="gq-map-back">&larr; Menu</button>
+      <div class="gq-chip">Level <b id="gq-map-lvlcount"></b></div>
+      <div class="gq-chip">XP <b id="gq-map-xp"></b></div>
+      <div class="gq-chip">&#128293; <b id="gq-map-streak"></b> day streak</div>
+      <div class="gq-xpbar"><div id="gq-xpfill"></div></div>
+    </div>
+    <div class="gq-daily sketch" id="gq-daily"></div>
+    <div id="gq-chapters"></div>
+    <div class="gq-chapter sketch">
+      <div class="gq-chapter-head"><span class="icon">&#127942;</span><h3>Achievements</h3></div>
+      <div class="gq-ach-grid" id="gq-achs"></div>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="gq-game" class="gq-hidden">
+    <div class="gq-topbar">
+      <button id="gq-back">&larr;</button>
+      <div>
+        <div class="title" id="gq-lvl-title"></div>
+        <div class="sub" id="gq-lvl-sub"></div>
+      </div>
+      <div class="right">
+        <div class="gq-chip" id="gq-chip-cmds">cmds <b>0</b></div>
+        <div class="gq-chip" id="gq-chip-xp">XP <b>0</b></div>
+        <button id="gq-sound">&#128266;</button>
+        <button id="gq-reset-lvl" title="Restart level">&#8635;</button>
+      </div>
+    </div>
+
+    <div class="gq-sandbox-bar sketch gq-hidden" id="gq-sbar">
+      <span class="lbl">Sandbox</span>
+      <button id="sb-reset">Reset repo</button>
+      <button id="sb-random">Random repo</button>
+      <button id="sb-ex1">Example: branches</button>
+      <button id="sb-ex2">Example: remote</button>
+      <button id="sb-export">Export graph</button>
+      <button id="sb-import">Import graph</button>
+    </div>
+
+    <div class="gq-objective sketch" id="gq-obj-card">
+      <div class="om">&#127919;</div>
+      <div class="ot">
+        <div class="lbl">Your task</div>
+        <div class="txt" id="gq-objective"></div>
+      </div>
+    </div>
+
+    <div class="gq-complete sketch gq-hidden" id="gq-complete"></div>
+
+    <div class="gq-grid">
+      <div class="gq-left">
+        <div class="gq-graph-panel sketch">
+          <div class="gq-graph-scroll" id="gq-graph-scroll"><svg id="gq-svg" width="600" height="400"></svg></div>
+          <div class="gq-graph-legend">
+            <span class="lg-commit">commit</span><span class="lg-head">HEAD</span>
+            <span class="lg-branch">branch</span><span class="lg-remote">remote</span><span class="lg-ghost">unreachable</span>
+          </div>
+        </div>
+        <div class="gq-areas sketch">
+          <div class="gq-areas-cols">
+            <div class="gq-area"><h4>Working Dir</h4><div id="gq-wd"></div></div>
+            <div class="gq-area"><h4>Staging</h4><div id="gq-stage"></div></div>
+            <div class="gq-area"><h4>Repository</h4><div id="gq-repo"></div></div>
+            <div class="gq-area stash-box"><h4>Stash</h4><div id="gq-stash"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gq-right">
+        <div class="gq-term sketch">
+          <div class="gq-term-head">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span class="tt" id="gq-term-title">~/project</span>
+          </div>
+          <div class="gq-term-out" id="gq-out"></div>
+          <div class="gq-input-row">
+            <span class="prompt">&#10095;</span>
+            <div class="gq-input-wrap">
+              <div id="gq-ghost"></div>
+              <input id="gq-in" autocomplete="off" spellcheck="false" placeholder="type a git command...">
+            </div>
+          </div>
+          <div class="gq-suggest" id="gq-suggest"></div>
+        </div>
+        <div class="gq-hintbox sketch" id="gq-hintbox">
+          <button class="gq-hint-btn" id="gq-hint">&#128161; Need a hint?</button>
+          <div id="gq-hints"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- modal -->
+<div class="gq-overlay" id="gq-overlay"><div class="gq-modal sketch" id="gq-modal"></div></div>
+<div class="gq-toast-wrap" id="gq-toasts"></div>
+
+<script src="gitquest-engine.js"></script>
+<script src="gitquest-levels.js"></script>
+<script src="gitquest-app.js"></script>
+
+<!-- Vercel Web Analytics -->
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sabotage &middot; Phoenix Hub</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="sabotage.css" />
+    <!-- Hardcoded backend URL. Change this ONE line to your Render URL before deploying,
+     e.g. window.SABOTAGE_SERVER = "https://sabotage-server.onrender.com"; -->
+    <script>
+      window.SABOTAGE_SERVER = "http://192.168.1.10:3001";
+    </script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  </head>
+  <body>
+    <div id="app" class="sb">
+      <!-- ============ LANDING ============ -->
+      <section id="sb-landing" class="sb-screen active">
+        <div class="sb-logo">Sabo<span class="q">tage</span></div>
+        <div class="sb-tag">
+          teams of two &middot; three challenges &middot; then someone pulls the
+          trigger
+        </div>
+
+        <div class="sb-panels">
+          <div class="sketch sb-panel">
+            <h3>Create a room</h3>
+            <label
+              >Your name<input
+                id="sb-c-name"
+                maxlength="20"
+                placeholder="e.g. Phoenix"
+            /></label>
+            <label
+              >Room password <span class="dim">(optional)</span
+              ><input
+                id="sb-c-pass"
+                maxlength="40"
+                placeholder="leave blank for none"
+            /></label>
+            <button class="primary" id="sb-create">Create room &rarr;</button>
+          </div>
+          <div class="sketch sb-panel">
+            <h3>Join a room</h3>
+            <label
+              >Your name<input
+                id="sb-j-name"
+                maxlength="20"
+                placeholder="e.g. Robin"
+            /></label>
+            <label
+              >Room code<input
+                id="sb-j-code"
+                maxlength="6"
+                placeholder="4-letter code"
+                style="text-transform: uppercase"
+            /></label>
+            <label
+              >Password <span class="dim">(if set)</span
+              ><input id="sb-j-pass" maxlength="40" placeholder="room password"
+            /></label>
+            <button class="primary" id="sb-join">Join room &rarr;</button>
+          </div>
+        </div>
+
+        <div class="sketch sb-howto">
+          <h3>How it works</h3>
+          <p>
+            Each round you're paired up: one of you has the <b>knowledge</b>,
+            the other has the <b>controls</b>. Talk it out — crack the
+            <b>password</b>, walk the <b>wire maze</b> blind,
+            <b>defuse the bomb</b>. But hidden saboteurs want your team to
+            fail&hellip;
+          </p>
+          <p>
+            After every round: 30 seconds to discuss and vote a suspect. The
+            chamber is loaded with <b>live rounds and blanks</b> — the suspect
+            pulls the trigger. Blank&nbsp;=&nbsp;safe. Live&nbsp;=&nbsp;gone.
+            Find a <b>&#128269; magnifying glass</b> to peek at the next shell.
+          </p>
+        </div>
+
+        <div class="sb-menu-foot">
+          <button onclick="location.href = 'index.html'">
+            &larr; Phoenix Hub
+          </button>
+        </div>
+        <div id="sb-error" class="sb-error"></div>
+      </section>
+
+      <!-- ============ LOBBY ============ -->
+      <section id="sb-lobby" class="sb-screen">
+        <div class="sb-topbar">
+          <button id="sb-leave1">&larr; Leave</button>
+          <div class="sb-room-code">Room <b id="sb-code"></b></div>
+          <div class="sb-copy" id="sb-copy" title="Copy code">
+            &#128203; copy
+          </div>
+        </div>
+        <div class="sketch sb-lobby-card">
+          <h2>Lobby</h2>
+          <p class="dim">
+            Share the room code (and password if you set one). You'll be paired
+            into teams of two each round. The host starts the game.
+          </p>
+          <div class="sb-players" id="sb-lobby-players"></div>
+          <div class="sb-lobby-actions">
+            <button class="primary" id="sb-start" disabled>Start game</button>
+            <div class="dim small" id="sb-start-note"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CHALLENGE PHASE ============ -->
+      <section id="sb-challenge" class="sb-screen">
+        <div class="sb-topbar">
+          <div class="sb-round">
+            R<b id="sb-round">1</b> &middot;
+            <span id="sb-ch-name">Challenge</span>
+          </div>
+          <div class="sb-teamstatus" id="sb-teamstatus"></div>
+          <div class="sb-timer" id="sb-timer">--</div>
+        </div>
+
+        <div class="sb-role-banner" id="sb-role-banner"></div>
+        <div class="sb-team-banner" id="sb-team-banner"></div>
+
+        <div class="sb-ch-grid">
+          <div class="sketch sb-taskcard" id="sb-taskcard">
+            <div class="sb-task-head">
+              <span id="sb-task-title">Challenge</span
+              ><span class="dim small" id="sb-task-sub"></span>
+            </div>
+            <div id="sb-task-area" class="sb-task-area"></div>
+          </div>
+
+          <div class="sketch sb-chat-card sb-teamchat-card">
+            <div class="sb-chat-head">
+              &#128172; Team chat
+              <span class="dim small">(only your team sees this)</span>
+            </div>
+            <div class="sb-chat-log" id="sb-teamchat-log"></div>
+            <div class="sb-chat-row">
+              <input
+                id="sb-teamchat-in"
+                maxlength="200"
+                placeholder="describe, direct, deceive..."
+              />
+              <button id="sb-teamchat-send">Send</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VOTING PHASE ============ -->
+      <section id="sb-voting" class="sb-screen">
+        <div class="sb-topbar">
+          <div class="sb-round">Voting</div>
+          <div class="sb-timer" id="sb-vote-timer">--</div>
+        </div>
+
+        <div class="sb-results-strip" id="sb-results-strip"></div>
+
+        <div class="sketch sb-chamber-card">
+          <div class="sb-chamber-head">&#128299; The chamber is loaded</div>
+          <div class="sb-shells" id="sb-shells"></div>
+          <div class="sb-chamber-sub" id="sb-chamber-sub"></div>
+          <div class="sb-glass-row">
+            <button id="sb-glass-btn" style="display: none">
+              &#128269; Inspect the next shell
+            </button>
+            <div class="sb-glass-result" id="sb-glass-result"></div>
+          </div>
+        </div>
+
+        <div class="sb-vote-grid">
+          <div class="sketch sb-vote-card">
+            <h3>Who do you accuse?</h3>
+            <div class="dim small">Top suspect must pull the trigger.</div>
+            <div class="dim small" id="sb-vote-note"></div>
+            <div class="sb-candidates" id="sb-candidates"></div>
+            <button id="sb-skip-vote" class="sb-skip">Skip / abstain</button>
+          </div>
+          <div class="sketch sb-chat-card">
+            <div class="sb-chat-head">Discussion</div>
+            <div class="sb-chat-log" id="sb-chat-log"></div>
+            <div class="sb-chat-row">
+              <input
+                id="sb-chat-in"
+                maxlength="200"
+                placeholder="accuse, defend, decide..."
+              />
+              <button id="sb-chat-send">Send</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ GAME OVER ============ -->
+      <section id="sb-over" class="sb-screen">
+        <div class="sketch sb-over-card">
+          <h2 id="sb-over-title">Game Over</h2>
+          <div id="sb-over-sub" class="sb-over-sub"></div>
+          <div class="sb-board" id="sb-final-board"></div>
+          <div class="sb-over-actions">
+            <button class="primary" id="sb-again" style="display: none">
+              Play again
+            </button>
+            <button id="sb-leave2">Leave to menu</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ OVERLAYS ============ -->
+      <!-- round intro splash -->
+      <div class="sb-overlay sb-splash" id="sb-splash">
+        <div class="sb-splash-box">
+          <div class="sb-splash-icon" id="sb-splash-icon">&#128273;</div>
+          <div class="sb-splash-round" id="sb-splash-round">ROUND 1</div>
+          <div class="sb-splash-name" id="sb-splash-name">PASSWORD PUZZLE</div>
+        </div>
+      </div>
+
+      <!-- trigger / roulette -->
+      <div class="sb-overlay" id="sb-trigger-overlay">
+        <div class="sb-trigger-box" id="sb-trigger-box">
+          <div class="sb-trigger-title" id="sb-trigger-title">
+            THE CHAMBER SPINS
+          </div>
+          <div class="sb-cyl-wrap">
+            <svg
+              id="sb-cylinder"
+              class="sb-cylinder"
+              viewBox="0 0 140 140"
+              aria-hidden="true"
+            >
+              <circle cx="70" cy="70" r="64" class="cyl-body" />
+              <circle cx="70" cy="70" r="64" fill="none" class="cyl-edge" />
+              <circle cx="70" cy="32" r="13" class="cyl-hole" />
+              <circle cx="102.9" cy="51" r="13" class="cyl-hole" />
+              <circle cx="102.9" cy="89" r="13" class="cyl-hole" />
+              <circle cx="70" cy="108" r="13" class="cyl-hole" />
+              <circle cx="37.1" cy="89" r="13" class="cyl-hole" />
+              <circle cx="37.1" cy="51" r="13" class="cyl-hole" />
+              <circle cx="70" cy="70" r="11" class="cyl-hub" />
+              <circle cx="70" cy="70" r="4" class="cyl-pin" />
+            </svg>
+            <div class="sb-flash" id="sb-flash"></div>
+            <div class="sb-smoke" id="sb-smoke">&#128168;</div>
+            <div
+              class="sb-trigger-gun"
+              id="sb-trigger-gun"
+              style="display: none"
+            ></div>
+          </div>
+          <div class="sb-shells sb-shells-dark" id="sb-trigger-shells"></div>
+          <div class="sb-trigger-sub" id="sb-trigger-sub"></div>
+          <button class="sb-pull-btn" id="sb-pull-btn" style="display: none">
+            PULL THE TRIGGER
+          </button>
+          <div class="sb-trigger-count" id="sb-trigger-count"></div>
+        </div>
+      </div>
+
+      <!-- vote result (skip/tie) -->
+      <div class="sb-overlay" id="sb-reveal-overlay">
+        <div class="sketch sb-reveal-box" id="sb-reveal-box"></div>
+      </div>
+
+      <!-- scoreboard between rounds -->
+      <div class="sb-overlay" id="sb-score-overlay">
+        <div class="sketch sb-score-box">
+          <h2>Scoreboard</h2>
+          <div class="dim small" id="sb-score-sub"></div>
+          <div class="sb-board" id="sb-score-board"></div>
+        </div>
+      </div>
+
+      <div class="sb-toast-wrap" id="sb-toasts"></div>
+      <button class="sb-mute" id="sb-mute" title="toggle sound">
+        &#128266;
+      </button>
+    </div>
+
+    <script src="sabotage-client.js"></script>
+
+    <!-- Vercel Web Analytics -->
+    <script>
+      window.va =
+        window.va ||
+        function () {
+          (window.vaq = window.vaq || []).push(arguments);
+        };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+# Render Blueprint for the Sabotage backend.
+# In Render: New + -> Blueprint -> connect this repo. Or create a Web Service
+# manually and point "Root Directory" at sabotage-server/.
+services:
+  - type: web
+    name: sabotage-server
+    runtime: node
+    plan: free
+    rootDir: sabotage-server
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: CORS_ORIGIN
+        # set this to your Vercel URL once deployed, e.g. https://phoenix-hub.vercel.app
+        # leave as * to allow any origin (simplest for a party game).
+        value: "*"

@@ -12,9 +12,12 @@
   .home-wrap h1{font-size:3rem; letter-spacing:1px;}
   .home-wrap h1 .flame{color:var(--gold);}
   .home-sub{font-size:1.1rem; color:var(--ink-soft); margin-bottom:2.2em; letter-spacing:.5px;}
-  .home-cards{display:flex; gap:26px; justify-content:center; flex-wrap:wrap; padding:0 10px;}
+  .home-cards{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:22px;
+    max-width:840px; margin:0 auto; padding:0 10px;
+  }
   .home-card{
-    flex:1 1 300px; max-width:400px; padding:28px 22px; text-decoration:none; color:var(--ink);
+    padding:28px 22px; text-decoration:none; color:var(--ink);
     display:flex; flex-direction:column; align-items:center; gap:10px;
     transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease; cursor:pointer;
   }
@@ -24,13 +27,20 @@
   .home-card h2{font-size:1.4rem; margin:0;}
   .home-card p{margin:0; font-size:.95rem; color:var(--ink-soft);}
   .home-card .go{margin-top:8px; font-weight:700; color:var(--gold); font-family:var(--font-head); letter-spacing:1px;}
+  /* with an odd number of cards, center the last one across both columns */
+  .home-cards > .home-card:last-child:nth-child(odd){grid-column:1 / -1; max-width:400px; width:100%; justify-self:center;}
   @media (max-width:760px){
     .home-wrap{margin-top:3vh;}
     .home-wrap h1{font-size:2rem;}
-    .home-cards{gap:14px; padding:0 4px;}
-    .home-card{padding:20px 16px; max-width:none;}
-    .home-card .icon{font-size:2.4rem;}
-    .home-card h2{font-size:1.2rem;}
+    .home-cards{gap:12px; padding:0 4px;}
+    .home-card{padding:18px 12px; gap:8px;}
+    .home-card .icon{font-size:2.2rem;}
+    .home-card h2{font-size:1.05rem;}
+    .home-card p{font-size:.82rem;}
+  }
+  /* very narrow phones: stack to a single readable column */
+  @media (max-width:460px){
+    .home-cards{grid-template-columns:1fr; max-width:340px;}
   }
 </style>
 </head>
@@ -52,9 +62,25 @@
         <p>A duel of wits &amp; cards. Place cards into 3 slots, reveal, and out-power your foe.</p>
         <div class="go">Play &rarr;</div>
       </a>
+      <a class="home-card sketch" href="sabotage.html">
+        <div class="icon">&#9760;&#65039;</div>
+        <h2>Sabotage</h2>
+        <p>An online social-deduction party game in teams of two. Crack passwords, guide wire mazes, defuse bombs &mdash; then vote a suspect into the roulette chamber. Live round or blank?</p>
+        <div class="go">Play &rarr;</div>
+      </a>
+      <a class="home-card sketch alt" href="studio.html">
+        <div class="icon">&#127916;</div>
+        <h2>Animation Studio</h2>
+        <p>Draw shapes, drop in pictures, lay sound under a timeline of keyframes &mdash; then export it as a GIF, an SVG, a still, or a video with the audio baked in.</p>
+        <div class="go">Open &rarr;</div>
+      </a>
     </div>
   </div>
   <footer>made by Phoenix</footer>
 </div>
+
+<!-- Vercel Web Analytics -->
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
