@@ -296,6 +296,20 @@ html[data-theme="parchment"] #ks-textedit{background:rgba(239,228,200,.92);}
 .ks-swatches{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
 .ks-sw{width:16px;height:16px;border-radius:4px;border:1px solid var(--ks-line);cursor:pointer;}
 .ks-sw:hover{border-color:var(--ks-ink);}
+/* a labelled row with a colour chip - traced colours, outlines */
+.ks-vrow{
+  display:flex;align-items:center;gap:6px;padding:4px 5px;margin-bottom:4px;
+  background:var(--ks-panel-2);border:1px solid var(--ks-line);border-radius:6px;
+}
+.ks-vrow .chip{
+  width:18px;height:18px;flex:none;padding:0;border:1px solid var(--ks-line);
+  border-radius:4px;background:none;cursor:pointer;display:block;
+}
+.ks-vrow .nm{
+  flex:1;min-width:0;font-size:11px;color:var(--ks-ink-soft);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.ks-vrow .ks-btn{padding:3px 6px;}
 .ks-sw.none{background:
   linear-gradient(45deg,transparent 45%,var(--ks-red) 45%,var(--ks-red) 55%,transparent 55%),
   var(--ks-sunken);}
@@ -638,6 +652,11 @@ let   uidN  = 0;
 const uid   = p => (p||'l') + (++uidN) + '_' + Math.random().toString(36).slice(2,7);
 const esc   = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+/* Pointer capture keeps a drag alive when the pointer leaves the element.
+   Guarded, because a missing implementation should not take the drag with it. */
+function capturePointer(node, id){
+  try{ if(node && node.setPointerCapture) node.setPointerCapture(id); }catch(e){}
+}
 function el(tag, cls, html){
   const n = document.createElement(tag);
   if(cls) n.className = cls;
@@ -670,6 +689,7 @@ const ICON = {
   image : svg('<rect x="3" y="4.5" width="18" height="15" rx="2.2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M3.5 17l4.8-4.6 3.7 3.4 3-2.7 5.4 5"/>'),
   group : svg('<rect x="3" y="3" width="8" height="8" rx="1.6"/><rect x="13" y="13" width="8" height="8" rx="1.6"/><path d="M11 7h4a2 2 0 0 1 2 2v4" stroke-dasharray="2.6 2.4"/>'),
   sound : svg('<path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
+  vector: svg('<path d="M5.5 18.5c2-7 5-11 12.5-13"/><rect x="2.5" y="17" width="4" height="4" rx=".8"/><rect x="17.5" y="2.5" width="4" height="4" rx=".8"/><circle cx="10.6" cy="10.4" r="1.5"/>'),
   mute  : svg('<path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>'),
 };
 
@@ -784,13 +804,15 @@ const EASE_LABEL = {
 };
 
 /* ------------------------------------------------------------------- state */
-const NUM_PROPS = ['x','y','w','h','rot','opacity','sw','rx','inner','fs','spacing'];
+const NUM_PROPS = ['x','y','w','h','rot','opacity','sw','rx','inner','fs','spacing',
+                   'draw','fillA','reveal'];
 const ADJ_PROPS = ['bri','con','sat','hue','blur','mono','sepia','invert'];
 const COL_PROPS = ['fill','stroke'];
 const ADJ_ZERO  = {bri:100, con:100, sat:100, hue:0, blur:0, mono:0, sepia:0, invert:0};
 
 const doc = {
   name:'Untitled animation', w:960, h:540, bg:'#11141d',
+  transparent:false,          /* no backdrop at all - exports carry an alpha channel */
   frames:72, fps:24, layers:[]
 };
 const assets = new Map();          /* id -> {id, name, src, img, w, h}  - never enters history */
@@ -799,7 +821,7 @@ const app = {
   frame:0, playing:false, loop:true, autokey:false,
   zoom:1, panX:0, panY:0,
   sel:[], snap:true, onion:false, muted:false,
-  ppf:12, tool:null, cropping:null, replaceTarget:null,
+  ppf:12, tool:null, cropping:null, editPts:null, replaceTarget:null, stagger:6,
   editing:null, defaultEase:'easeInOut',
   scrollY:0, needsDraw:true, needsTl:true, lastAdded:null
 };
@@ -811,6 +833,7 @@ function baseLayer(type, name){
     x:doc.w/2, y:doc.h/2, w:160, h:120, rot:0, opacity:1,
     fill:'#5aa2e8', stroke:'none', sw:2,
     rx:14, points:5, inner:.45, sides:6, thick:.28,
+    draw:1, fillA:1,
     visible:true, locked:false, keys:[]
   };
 }
@@ -829,6 +852,8 @@ function makeText(x, y, txt){
   L.text = txt || 'Double-click to edit';
   L.family = 'Inter'; L.weight = 600; L.fs = 44; L.spacing = 0; L.align = 'center';
   L.fill = '#e8ecf5'; L.stroke = 'none'; L.sw = 0;
+  L.reveal = 1;                 /* how much of the text has been typed out */
+  delete L.draw;
   fitText(L);
   return L;
 }
@@ -845,6 +870,7 @@ function makeImage(assetId, x, y){
   L.flipH = false; L.flipV = false; L.mask = 'none';
   L.fill = 'none'; L.stroke = 'none'; L.sw = 0;
   L.adj = Object.assign({}, ADJ_ZERO);
+  delete L.draw; delete L.fillA;
   return L;
 }
 
@@ -987,8 +1013,8 @@ function delKey(L, f){
 const hist = {past:[], future:[], armed:false};
 function snapshot(){
   return JSON.stringify({
-    name:doc.name, w:doc.w, h:doc.h, bg:doc.bg, frames:doc.frames, fps:doc.fps,
-    layers:doc.layers, sel:app.sel
+    name:doc.name, w:doc.w, h:doc.h, bg:doc.bg, transparent:doc.transparent,
+    frames:doc.frames, fps:doc.fps, layers:doc.layers, sel:app.sel
   });
 }
 /* Arm once per interaction (pointerdown / focus), not per value change, so a
@@ -1005,6 +1031,7 @@ function disarm(){ hist.armed = false; }
 function restore(s){
   const d = JSON.parse(s);
   doc.name = d.name; doc.w = d.w; doc.h = d.h; doc.bg = d.bg;
+  doc.transparent = !!d.transparent;
   doc.frames = d.frames; doc.fps = d.fps;
   doc.layers = d.layers;
   app.sel = (d.sel || []).filter(id => findLayer(id));
@@ -1320,19 +1347,76 @@ function drawLayer(ctx, L, f, alphaMul){
     ctx.scale((p.w||bw)/bw, (p.h||bh)/bh);
     for(const c of L.children) drawLayer(ctx, c, f, 1);
   }
-  else if(L.type === 'text')  drawText(ctx, L, p);
-  else if(L.type === 'image') drawImageLayer(ctx, L, p);
-  else                        drawShape(ctx, L, p);
+  else if(L.type === 'text')   drawText(ctx, L, p);
+  else if(L.type === 'image')  drawImageLayer(ctx, L, p);
+  else if(L.type === 'vector') drawVector(ctx, L, p, a);
+  else                         drawShape(ctx, L, p, a);
 
   ctx.restore();
 }
-function drawShape(ctx, L, p){
+function drawShape(ctx, L, p, alpha){
   shapePath(ctx, L.type, p.w, p.h, p);
-  if(p.fill && p.fill !== 'none' && !OPEN_SHAPES[L.type]){ ctx.fillStyle = p.fill; ctx.fill(); }
+  const fa = clamp(p.fillA == null ? 1 : p.fillA, 0, 1);
+  if(p.fill && p.fill !== 'none' && !OPEN_SHAPES[L.type] && fa > .001){
+    ctx.globalAlpha = (alpha == null ? 1 : alpha) * fa;
+    ctx.fillStyle = p.fill;
+    ctx.fill();
+    ctx.globalAlpha = (alpha == null ? 1 : alpha);
+  }
   if(p.stroke && p.stroke !== 'none' && p.sw > 0){
     ctx.strokeStyle = p.stroke; ctx.lineWidth = p.sw;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    const dr = clamp(p.draw == null ? 1 : p.draw, 0, 1);
+    if(dr < 1) applyDash(ctx, dr, outlineLength(L.type, p.w, p.h, p));
     ctx.stroke();
+    if(ctx.setLineDash) ctx.setLineDash([]);
+  }
+}
+/* rough perimeter, good enough to drive a draw-on reveal */
+function outlineLength(type, w, h, p){
+  const a = Math.abs(w), b = Math.abs(h);
+  switch(type){
+    case 'line':     return a;
+    case 'ellipse':  return Math.PI*(3*(a+b)/2 - Math.sqrt((3*a/2 + b/2)*(a/2 + 3*b/2)));
+    case 'triangle': return a + 2*Math.hypot(a/2, b);
+    case 'diamond':  return 4*Math.hypot(a/2, b/2);
+    case 'star':     return (Math.max(3, Math.round(p.points||5))*2) * Math.hypot(a,b)*.3;
+    case 'polygon':  return Math.PI*(a+b)/2;
+    default:         return 2*(a+b);
+  }
+}
+/* how much of the text has been typed out; the box never changes size, so
+   the layout does not jitter as the characters arrive */
+function revealedLines(L, reveal){
+  const lines = textLines(L);
+  if(reveal == null || reveal >= 1) return lines;
+  const total = lines.reduce((n, l) => n + l.length, 0);
+  let left = Math.floor(total * clamp(reveal, 0, 1));
+  return lines.map(l => {
+    const take = Math.max(0, Math.min(l.length, left));
+    left -= take;
+    return l.slice(0, take);
+  });
+}
+/* Text is always laid out from the left edge of the full line, then only the
+   revealed part is painted. That keeps the line from re-centring itself as a
+   typewriter types, and it means the SVG export can position text identically
+   without having to re-implement alignment. */
+function lineRunWidth(ctx, line, sp, manual){
+  let wd = ctx.measureText(line).width;
+  if(manual) wd += (sp || 0) * Math.max(0, Array.from(line).length - 1);
+  return wd;
+}
+function lineStartX(ctx, line, p, L, manual){
+  const align = L.align || 'center';
+  const ax = align === 'left' ? -p.w/2 + 2 : align === 'right' ? p.w/2 - 2 : 0;
+  const full = lineRunWidth(ctx, line, p.spacing, manual);
+  return align === 'left' ? ax : align === 'right' ? ax - full : ax - full/2;
+}
+function paintRun(ctx, run, x, y, p){
+  if(p.fill && p.fill !== 'none'){ ctx.fillStyle = p.fill; ctx.fillText(run, x, y); }
+  if(p.stroke && p.stroke !== 'none' && p.sw > 0){
+    ctx.strokeStyle = p.stroke; ctx.lineWidth = p.sw; ctx.strokeText(run, x, y);
   }
 }
 function drawText(ctx, L, p){
@@ -1340,38 +1424,53 @@ function drawText(ctx, L, p){
   setFont(ctx, p.weight || L.weight, p.fs, L.family || 'Inter');
   applySpacing(ctx, p.spacing);
   ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
   const lh = p.fs * 1.25;
   const total = lines.length * lh;
-  const align = L.align || 'center';
-  ctx.textAlign = align === 'left' ? 'left' : align === 'right' ? 'right' : 'center';
-  const ax = align === 'left' ? -p.w/2 + 2 : align === 'right' ? p.w/2 - 2 : 0;
   const manual = !('letterSpacing' in ctx) && p.spacing;
+  const rev = p.reveal == null ? 1 : clamp(p.reveal, 0, 1);
+  let left = Math.floor(lines.reduce((n, l) => n + l.length, 0) * rev);
+
   for(let i = 0; i < lines.length; i++){
+    const line = lines[i];
+    const take = rev >= 1 ? line.length : Math.max(0, Math.min(line.length, left));
+    if(rev < 1) left -= take;
     const y = -total/2 + lh*i + lh/2;
-    if(manual) drawSpacedLine(ctx, lines[i], ax, y, p.spacing, align, p);
-    else {
-      if(p.fill && p.fill !== 'none'){ ctx.fillStyle = p.fill; ctx.fillText(lines[i], ax, y); }
-      if(p.stroke && p.stroke !== 'none' && p.sw > 0){
-        ctx.strokeStyle = p.stroke; ctx.lineWidth = p.sw; ctx.strokeText(lines[i], ax, y);
+    const x0 = lineStartX(ctx, line, p, L, manual);
+    const shown = line.slice(0, take);
+    if(!shown) continue;
+    if(manual){
+      let x = x0;
+      for(const ch of Array.from(shown)){
+        paintRun(ctx, ch, x, y, p);
+        x += ctx.measureText(ch).width + (p.spacing || 0);
       }
-    }
+    } else paintRun(ctx, shown, x0, y, p);
   }
 }
-function drawSpacedLine(ctx, line, ax, y, sp, align, p){
-  const chars = Array.from(line);
-  let total = 0;
-  for(const c of chars) total += ctx.measureText(c).width + sp;
-  total -= sp;
-  let x = align === 'left' ? ax : align === 'right' ? ax - total : ax - total/2;
-  const prev = ctx.textAlign; ctx.textAlign = 'left';
-  for(const c of chars){
-    if(p.fill && p.fill !== 'none'){ ctx.fillStyle = p.fill; ctx.fillText(c, x, y); }
-    if(p.stroke && p.stroke !== 'none' && p.sw > 0){
-      ctx.strokeStyle = p.stroke; ctx.lineWidth = p.sw; ctx.strokeText(c, x, y);
+/* the same layout maths, for the SVG exporter */
+function textLayout(L, p){
+  const ctx = textCtx;
+  ctx.save();
+  setFont(ctx, p.weight || L.weight, p.fs, L.family || 'Inter');
+  applySpacing(ctx, p.spacing);
+  const manual = !('letterSpacing' in ctx) && p.spacing;
+  const lines = textLines(L);
+  const lh = p.fs*1.25;
+  const total = lines.length*lh;
+  const out = lines.map((line, i) => {
+    const x0 = lineStartX(ctx, line, p, L, manual);
+    const y  = -total/2 + lh*i + lh/2;
+    const chars = [];
+    let x = x0;
+    for(const ch of Array.from(line)){
+      chars.push({ch, x, y});
+      x += ctx.measureText(ch).width + (manual ? (p.spacing || 0) : 0);
     }
-    x += ctx.measureText(c).width + sp;
-  }
-  ctx.textAlign = prev;
+    return {text:line, x:x0, y, chars};
+  });
+  ctx.restore();
+  return out;
 }
 function drawImageLayer(ctx, L, p){
   const a = assets.get(L.assetId);
@@ -1460,12 +1559,31 @@ function drawScene(){
   ctx.fillStyle = CC.bg;
   ctx.fillRect(0, 0, cv.width, cv.height);
 
-  /* artboard */
-  ctx.save();
-  ctx.setTransform.apply(ctx, viewM());
-  ctx.fillStyle = doc.bg;
-  ctx.fillRect(0, 0, doc.w, doc.h);
-  ctx.restore();
+  /* artboard: a checkerboard when there is no backdrop, so "transparent" is
+     visibly different from "happens to be dark grey" */
+  const a0 = w2s(0, 0), b0 = w2s(doc.w, doc.h);
+  if(doc.transparent){
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.beginPath();
+    ctx.rect(a0.x*DPR, a0.y*DPR, (b0.x-a0.x)*DPR, (b0.y-a0.y)*DPR);
+    ctx.clip();
+    const sq = 9*DPR;
+    ctx.fillStyle = CC.panel2;
+    ctx.fillRect(a0.x*DPR, a0.y*DPR, (b0.x-a0.x)*DPR, (b0.y-a0.y)*DPR);
+    ctx.fillStyle = CC.panel;
+    const x0 = Math.floor(a0.x*DPR/sq)*sq, y0 = Math.floor(a0.y*DPR/sq)*sq;
+    for(let y = y0; y < b0.y*DPR; y += sq)
+      for(let x = x0; x < b0.x*DPR; x += sq)
+        if(((x/sq | 0) + (y/sq | 0)) % 2) ctx.fillRect(x, y, sq, sq);
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.setTransform.apply(ctx, viewM());
+    ctx.fillStyle = doc.bg;
+    ctx.fillRect(0, 0, doc.w, doc.h);
+    ctx.restore();
+  }
 
   /* clip everything to the artboard */
   ctx.save();
@@ -1488,9 +1606,8 @@ function drawScene(){
   ctx.setTransform(1,0,0,1,0,0);
   ctx.strokeStyle = CC.line;
   ctx.lineWidth = 1*DPR;
-  const a = w2s(0,0), b = w2s(doc.w, doc.h);
-  ctx.strokeRect(Math.round(a.x*DPR)+.5, Math.round(a.y*DPR)+.5,
-                 Math.round((b.x-a.x)*DPR), Math.round((b.y-a.y)*DPR));
+  ctx.strokeRect(Math.round(a0.x*DPR)+.5, Math.round(a0.y*DPR)+.5,
+                 Math.round((b0.x-a0.x)*DPR), Math.round((b0.y-a0.y)*DPR));
   drawOverlay();
 }
 
@@ -1512,6 +1629,7 @@ function drawOverlay(){
   octx.scale(DPR, DPR);
 
   if(app.cropping){ drawCropOverlay(); octx.restore(); return; }
+  if(app.editPts){ drawPointsOverlay(); octx.restore(); return; }
   if(app.playing){ octx.restore(); return; }
 
   const sel = selLayers();
@@ -1638,6 +1756,10 @@ function pointInLayer(L, wx, wy, pm){
   const m  = boxM(L, app.frame, pm);
   const lp = mApply(mInv(m), wx, wy);
   const pad = Math.max(4/app.zoom, (p.sw||0)/2 + 3/app.zoom);
+  if(L.type === 'vector'){
+    if(Math.abs(lp.x) > p.w/2 + pad || Math.abs(lp.y) > p.h/2 + pad) return false;
+    return vectorHit(L, lp.x, lp.y, p);
+  }
   if(L.type === 'text' || L.type === 'image' || OPEN_SHAPES[L.type]){
     if(OPEN_SHAPES[L.type]) return Math.abs(lp.y) <= pad + p.h/2 && Math.abs(lp.x) <= p.w/2 + pad;
     return Math.abs(lp.x) <= p.w/2 + pad && Math.abs(lp.y) <= p.h/2 + pad;
@@ -1773,9 +1895,10 @@ function handleUnder(sx, sy){
 scroll.addEventListener('pointerdown', e => {
   if(e.button === 2) return;
   const pt = localPt(e);
-  scroll.setPointerCapture(e.pointerId);
+  capturePointer(scroll, e.pointerId);
 
   if(app.cropping){ cropPointerDown(e, pt); return; }
+  if(app.editPts && !spaceDown && e.button !== 1){ ptPointerDown(e, pt); return; }
 
   /* pan */
   if(e.button === 1 || spaceDown){
@@ -1827,6 +1950,12 @@ scroll.addEventListener('pointerdown', e => {
 scroll.addEventListener('pointermove', e => {
   const pt = localPt(e);
   if(app.cropping){ cropPointerMove(e, pt); return; }
+  if(app.editPts && !drag){
+    ptPointerMove(e, pt);
+    if(!app.editPts.drag && !app.editPts.marq)
+      scroll.style.cursor = pointAt(pt.x, pt.y) ? 'move' : (e.altKey && segmentAt(pt.x, pt.y)) ? 'copy' : 'default';
+    return;
+  }
   if(!drag){
     const h = handleUnder(pt.x, pt.y);
     scroll.style.cursor = spaceDown ? 'grab' : h ? (h.kind === 'rot' ? 'crosshair' : 'nwse-resize') : 'default';
@@ -1874,6 +2003,7 @@ scroll.addEventListener('pointermove', e => {
 });
 function endDrag(e){
   if(app.cropping){ cropPointerUp(e); return; }
+  if(app.editPts && !drag){ ptPointerUp(e); return; }
   if(!drag) return;
   if(drag.mode === 'marq'){ app.marquee = null; select(app.sel.slice()); }
   scroll.classList.remove('grabbing');
@@ -1985,9 +2115,11 @@ tedit.addEventListener('keydown', e => {
 });
 
 scroll.addEventListener('dblclick', e => {
+  if(app.editPts) return;
   const pt = localPt(e), w = s2w(pt.x, pt.y);
   const L = hitAt(w.x, w.y, false);
   if(!L) return;
+  if(L.type === 'vector'){ select(L.id); enterPoints(L); return; }
   if(L.type === 'group'){
     const inner = hitIn(L, w.x, w.y, mI(), true);
     if(inner) select(inner.id);
@@ -2085,13 +2217,13 @@ function cropPointerDown(e, pt){
     const s = cropHandleScreen(H, G);
     if(Math.abs(pt.x-s.x) <= HSIZE+1 && Math.abs(pt.y-s.y) <= HSIZE+1){
       app.cropping.drag = {H, c0:Object.assign({}, app.cropping.c), m:G.m, g:G.g};
-      scroll.setPointerCapture(e.pointerId);
+      capturePointer(scroll, e.pointerId);
       return;
     }
   }
   app.cropping.drag = {move:true, c0:Object.assign({}, app.cropping.c), m:G.m, g:G.g,
                        start:mApply(mInv(G.m), s2w(pt.x, pt.y).x, s2w(pt.x, pt.y).y)};
-  scroll.setPointerCapture(e.pointerId);
+  capturePointer(scroll, e.pointerId);
 }
 function cropPointerMove(e, pt){
   const d = app.cropping.drag;
@@ -2261,7 +2393,7 @@ function groupSelection(){
   G.x = cx; G.y = cy; G.w = Math.max(1, b.x1-b.x0); G.h = Math.max(1, b.y1-b.y0);
   G.bw = G.w; G.bh = G.h; G.rot = 0; G.opacity = 1;
   G.children = []; G.open = true;
-  delete G.fill; delete G.stroke;
+  delete G.fill; delete G.stroke; delete G.draw; delete G.fillA;
   const order = doc.layers.filter(L => top.indexOf(L.id) >= 0);
   for(const L of order){
     L.x -= cx; L.y -= cy;
@@ -2322,39 +2454,178 @@ function ungroupSelection(){
    MOTION PRESETS
    ========================================================================== */
 const PRESETS = {
-  fadeIn      : {label:'Fade in',        build:(L,p,d) => [[0,{opacity:0},'easeOut'], [d,{opacity:p.opacity}]]},
-  fadeOut     : {label:'Fade out',       build:(L,p,d) => [[0,{opacity:p.opacity},'easeIn'], [d,{opacity:0}]]},
-  popIn       : {label:'Pop in',         build:(L,p,d) => [[0,{w:p.w*.2,h:p.h*.2,opacity:0},'back'], [d,{w:p.w,h:p.h,opacity:p.opacity}]]},
-  slideLeft   : {label:'Slide in left',  build:(L,p,d) => [[0,{x:-p.w,opacity:0},'easeOut'], [d,{x:p.x,opacity:p.opacity}]]},
-  slideRight  : {label:'Slide in right', build:(L,p,d) => [[0,{x:doc.w+p.w,opacity:0},'easeOut'], [d,{x:p.x,opacity:p.opacity}]]},
-  slideUp     : {label:'Slide in below', build:(L,p,d) => [[0,{y:doc.h+p.h,opacity:0},'easeOut'], [d,{y:p.y,opacity:p.opacity}]]},
-  spin        : {label:'Spin',           build:(L,p,d) => [[0,{rot:p.rot},'linear'], [d,{rot:p.rot+360}]]},
-  pulse       : {label:'Pulse',          build:(L,p,d) => [[0,{w:p.w,h:p.h},'easeInOut'], [Math.round(d/2),{w:p.w*1.16,h:p.h*1.16},'easeInOut'], [d,{w:p.w,h:p.h}]]},
-  float       : {label:'Float',          build:(L,p,d) => [[0,{y:p.y},'easeInOut'], [Math.round(d/2),{y:p.y-14},'easeInOut'], [d,{y:p.y}]]},
-  grow        : {label:'Grow',           build:(L,p,d) => [[0,{w:1,h:1},'easeOut'], [d,{w:p.w,h:p.h}]]},
-  driftZoom   : {label:'Drift and zoom', build:(L,p,d) => [[0,{x:p.x-26,w:p.w*.88,h:p.h*.88},'easeInOut'], [d,{x:p.x,w:p.w,h:p.h}]]}
+  /* --- entrances --- */
+  fadeIn      : {g:'in', label:'Fade in',        build:(L,p,d) => [[0,{opacity:0},'easeOut'], [d,{opacity:p.opacity}]]},
+  popIn       : {g:'in', label:'Pop in',         build:(L,p,d) => [[0,{w:p.w*.2,h:p.h*.2,opacity:0},'back'], [d,{w:p.w,h:p.h,opacity:p.opacity}]]},
+  slideLeft   : {g:'in', label:'Slide in left',  build:(L,p,d) => [[0,{x:-p.w,opacity:0},'easeOut'], [d,{x:p.x,opacity:p.opacity}]]},
+  slideRight  : {g:'in', label:'Slide in right', build:(L,p,d) => [[0,{x:doc.w+p.w,opacity:0},'easeOut'], [d,{x:p.x,opacity:p.opacity}]]},
+  slideUp     : {g:'in', label:'Slide in below', build:(L,p,d) => [[0,{y:doc.h+p.h,opacity:0},'easeOut'], [d,{y:p.y,opacity:p.opacity}]]},
+  dropIn      : {g:'in', label:'Drop in above',  build:(L,p,d) => [[0,{y:-p.h,opacity:0},'easeOut'], [d,{y:p.y,opacity:p.opacity}]]},
+  bounceIn    : {g:'in', label:'Bounce in',      build:(L,p,d) => [[0,{y:p.y - doc.h*.45,opacity:1},'bounce'], [d,{y:p.y,opacity:p.opacity}]]},
+  grow        : {g:'in', label:'Grow',           build:(L,p,d) => [[0,{w:1,h:1},'easeOut'], [d,{w:p.w,h:p.h}]]},
+  flipIn      : {g:'in', label:'Flip in',        build:(L,p,d) => [[0,{w:1,opacity:.2},'easeOut'], [d,{w:p.w,opacity:p.opacity}]]},
+  zoomOut     : {g:'in', label:'Zoom out',       build:(L,p,d) => [[0,{w:p.w*1.5,h:p.h*1.5,opacity:0},'easeOut'], [d,{w:p.w,h:p.h,opacity:p.opacity}]]},
+  unrollIn    : {g:'in', label:'Unroll',         build:(L,p,d) => [[0,{w:1,rot:p.rot-180,opacity:0},'easeOut'], [d,{w:p.w,rot:p.rot,opacity:p.opacity}]]},
+  typewriter  : {g:'in', label:'Typewriter',     needs:'reveal',
+                 build:(L,p,d) => [[0,{reveal:0},'linear'], [d,{reveal:1}]]},
+  drawOn      : {g:'in', label:'Draw on',        needs:'draw',
+                 build:(L,p,d) => [[0,{draw:0,fillA:0},'easeInOut'],
+                                   [Math.max(1,Math.round(d*.65)),{draw:1,fillA:0},'easeOut'],
+                                   [d,{draw:1,fillA:p.fillA == null ? 1 : p.fillA}]]},
+  blurIn      : {g:'in', label:'Blur in',        needs:'blur',
+                 build:(L,p,d) => [[0,{blur:16,opacity:0},'easeOut'], [d,{blur:0,opacity:p.opacity}]]},
+
+  /* --- emphasis and motion --- */
+  fadeOut     : {g:'go', label:'Fade out',       build:(L,p,d) => [[0,{opacity:p.opacity},'easeIn'], [d,{opacity:0}]]},
+  spin        : {g:'go', label:'Spin',           build:(L,p,d) => [[0,{rot:p.rot},'linear'], [d,{rot:p.rot+360}]]},
+  pulse       : {g:'go', label:'Pulse',          build:(L,p,d) => [[0,{w:p.w,h:p.h},'easeInOut'], [Math.round(d/2),{w:p.w*1.16,h:p.h*1.16},'easeInOut'], [d,{w:p.w,h:p.h}]]},
+  float       : {g:'go', label:'Float',          build:(L,p,d) => [[0,{y:p.y},'easeInOut'], [Math.round(d/2),{y:p.y-14},'easeInOut'], [d,{y:p.y}]]},
+  driftZoom   : {g:'go', label:'Drift and zoom', build:(L,p,d) => [[0,{x:p.x-26,w:p.w*.88,h:p.h*.88},'easeInOut'], [d,{x:p.x,w:p.w,h:p.h}]]},
+  shake       : {g:'go', label:'Shake',          build:(L,p,d) => {
+                   const s = [], n = 6;
+                   for(let i = 0; i <= n; i++)
+                     s.push([Math.round(d*i/n), {x: p.x + (i === 0 || i === n ? 0 : (i%2 ? 9 : -9))}, 'easeInOut']);
+                   return s;
+                 }},
+  wobble      : {g:'go', label:'Wobble',         build:(L,p,d) => {
+                   const s = [], n = 4;
+                   for(let i = 0; i <= n; i++)
+                     s.push([Math.round(d*i/n), {rot: p.rot + (i === 0 || i === n ? 0 : (i%2 ? 7 : -7))}, 'easeInOut']);
+                   return s;
+                 }},
+  orbit       : {g:'go', label:'Orbit',          build:(L,p,d) => {
+                   const s = [], n = 8, r = 46;
+                   for(let i = 0; i <= n; i++){
+                     const a = i/n*Math.PI*2;
+                     s.push([Math.round(d*i/n), {x: p.x + Math.sin(a)*r, y: p.y - Math.cos(a)*r + r}, 'linear']);
+                   }
+                   return s;
+                 }},
+  swing       : {g:'go', label:'Swing',          build:(L,p,d) => [[0,{rot:p.rot-14},'easeInOut'], [Math.round(d/2),{rot:p.rot+14},'easeInOut'], [d,{rot:p.rot-14}]]},
+  breathe     : {g:'go', label:'Breathe',        build:(L,p,d) => [[0,{opacity:p.opacity},'easeInOut'], [Math.round(d/2),{opacity:Math.max(.15,p.opacity*.4)},'easeInOut'], [d,{opacity:p.opacity}]]},
+  flicker     : {g:'go', label:'Flicker',        build:(L,p,d) => {
+                   const s = [];
+                   for(let i = 0; i <= 8; i++)
+                     s.push([Math.round(d*i/8), {opacity: i%2 ? p.opacity*.25 : p.opacity}, 'hold']);
+                   return s;
+                 }},
+  inkIn       : {g:'go', label:'Ink in',         needs:'fillA',
+                 build:(L,p,d) => [[0,{fillA:0},'easeInOut'], [d,{fillA:p.fillA == null ? 1 : p.fillA}]]}
 };
+const PRESET_GROUPS = [['in','Entrances'], ['go','Emphasis and motion']];
+
+/* Some movements only mean something on certain layers. Say so rather than
+   quietly doing nothing. */
+function presetFits(P, L){
+  if(!P.needs) return true;
+  if(P.needs === 'reveal') return L.type === 'text';
+  if(P.needs === 'blur')   return L.type === 'image';
+  if(P.needs === 'draw')   return L.type === 'vector' || (L.type !== 'image' && L.type !== 'text' && L.type !== 'group' && L.type !== 'sound');
+  if(P.needs === 'fillA')  return L.fillA !== undefined;
+  return true;
+}
+const NEEDS_WHY = {
+  reveal:'Typewriter only works on text layers.',
+  blur  :'Blur in only works on pictures.',
+  draw  :'Draw on needs a shape or a traced picture with an outline.',
+  fillA :'Ink in needs a layer that has a fill.'
+};
+
 function applyPreset(name){
-  const list = selLayers();
-  if(!list.length){ toast('Select a layer first, then pick a movement for it.', true); return; }
+  const all = selLayers().filter(L => L.type !== 'sound');
+  if(!all.length){ toast('Select a layer first, then pick a movement for it.', true); return; }
   const P = PRESETS[name];
+  const list = all.filter(L => presetFits(P, L));
+  if(!list.length){ toast(NEEDS_WHY[P.needs] || 'That movement does not apply to this layer.', true); return; }
+
   arm();
   const f0 = app.frame;
-  const d  = Math.max(2, Math.min(doc.frames-1-f0, Math.round(doc.fps)));
-  for(const L of list){
+  const stag = Math.max(0, Math.round(app.stagger || 0));
+  const d = Math.max(2, Math.min(doc.frames-1-f0, Math.round(doc.fps)));
+  list.forEach((L, i) => {
+    /* draw-on needs something to draw with */
+    if(name === 'drawOn' && (!L.stroke || L.stroke === 'none' || !L.sw)){
+      L.stroke = (L.fill && L.fill !== 'none') ? L.fill : '#e8ecf5';
+      L.sw = Math.max(2, L.sw || 0);
+    }
     const base = animatable(L);
+    const off = i*stag;
     for(const step of P.build(L, base, d)){
-      const f = clamp(f0 + step[0], 0, doc.frames-1);
+      const f = clamp(f0 + off + step[0], 0, doc.frames-1);
       const pose = Object.assign({}, base, step[1]);
       const ex = keyAt(L, f);
       if(ex){ ex.p = pose; if(step[2]) ex.ease = step[2]; }
       else L.keys.push({f, ease: step[2] || app.defaultEase, p:pose});
     }
     sortKeys(L);
+  });
+  disarm();
+  buildInspector(); dirty(); dirtyTl();
+  const skipped = all.length - list.length;
+  toast(P.label + ' added' + (stag && list.length > 1 ? ', staggered by ' + stag + ' frames' : '') +
+        (skipped ? ' — ' + skipped + ' layer' + (skipped > 1 ? 's' : '') + ' skipped' : ''));
+}
+
+/* ---- keyframe utilities ---- */
+function keySpan(L){
+  if(!L.keys || !L.keys.length) return null;
+  return {a:L.keys[0].f, b:L.keys[L.keys.length-1].f};
+}
+function reverseKeys(list){
+  let n = 0;
+  arm();
+  for(const L of list){
+    const s = keySpan(L);
+    if(!s) continue;
+    for(const k of L.keys) k.f = s.a + (s.b - k.f);
+    const eases = L.keys.map(k => k.ease);
+    sortKeys(L);
+    L.keys.forEach((k, i) => { k.ease = eases[eases.length-1-i] || k.ease; });
+    n++;
   }
   disarm();
   buildInspector(); dirty(); dirtyTl();
-  toast(P.label + ' added');
+  toast(n ? 'Keyframes reversed' : 'Those layers have no keyframes to reverse.', !n);
+}
+function shiftKeys(list, by){
+  let n = 0;
+  arm();
+  for(const L of list){
+    if(!L.keys || !L.keys.length) continue;
+    const s = keySpan(L);
+    const lo = Math.max(-s.a, Math.min(by, doc.frames-1 - s.b));
+    if(!lo) continue;
+    for(const k of L.keys) k.f = clamp(k.f + lo, 0, doc.frames-1);
+    sortKeys(L);
+    n++;
+  }
+  disarm();
+  buildInspector(); dirty(); dirtyTl();
+  toast(n ? 'Keyframes moved by ' + by + ' frames' : 'Nothing to move — those keyframes are already at the edge.', !n);
+}
+function retimeKeys(list, factor){
+  let n = 0;
+  arm();
+  for(const L of list){
+    const s = keySpan(L);
+    if(!s) continue;
+    for(const k of L.keys) k.f = clamp(Math.round(s.a + (k.f - s.a)*factor), 0, doc.frames-1);
+    /* two keys must never land on the same frame */
+    const seen = new Set();
+    L.keys = L.keys.filter(k => seen.has(k.f) ? false : (seen.add(k.f), true));
+    sortKeys(L);
+    n++;
+  }
+  disarm();
+  buildInspector(); dirty(); dirtyTl();
+  toast(n ? (factor > 1 ? 'Slowed down' : 'Sped up') : 'Those layers have no keyframes to retime.', !n);
+}
+function clearKeys(list){
+  arm();
+  for(const L of list) L.keys = [];
+  disarm();
+  buildInspector(); renderLayerList(); dirty(); dirtyTl();
+  toast('Keyframes cleared');
 }
 
 /* ==========================================================================
@@ -2503,6 +2774,7 @@ function buildInspector(){
   inspSync = [];
   insp.innerHTML = '';
   if(app.cropping){ buildCropInspector(); return; }
+  if(app.editPts){ buildPointInspector(); return; }
   const list = selLayers();
   if(!list.length){ buildDocInspector(); paintSelInfo(); return; }
   if(list.length > 1){ buildMultiInspector(list); paintSelInfo(); return; }
@@ -2529,10 +2801,31 @@ function buildDocInspector(){
       const [w,h] = v.split('x').map(Number);
       doc.w = w; doc.h = h; sizeStage(); fitStage(); buildInspector();
     }));
-  const bg = row();
-  bg.appendChild(fcolor('Backdrop', () => doc.bg, v => { doc.bg = v; dirty(); }));
-  bg.appendChild(btn('Match the Hub', () => { arm(); doc.bg = '#11141d'; disarm(); buildInspector(); dirty(); }));
-  s1.appendChild(bg);
+  const tb = btn(doc.transparent ? 'No backdrop (transparent)' : 'Solid backdrop', () => {
+    arm(); doc.transparent = !doc.transparent; disarm();
+    buildInspector(); dirty();
+    toast(doc.transparent
+      ? 'Backdrop off — GIF, PNG and SVG exports will carry transparency'
+      : 'Backdrop on');
+  });
+  if(doc.transparent) tb.classList.add('on');
+  tb.style.width = '100%';
+  tb.style.justifyContent = 'center';
+  s1.appendChild(el('span', 'ks-lab', 'Backdrop'));
+  s1.appendChild(tb);
+  if(!doc.transparent){
+    const bg = row();
+    bg.appendChild(fcolor('Colour', () => doc.bg, v => { doc.bg = v; dirty(); }));
+    bg.appendChild(btn('Match the Hub', () => { arm(); doc.bg = '#11141d'; disarm(); buildInspector(); dirty(); }));
+    s1.appendChild(bg);
+  } else {
+    s1.appendChild(el('div', 'ks-note',
+      'The chequerboard is not part of the picture — it is how the stage shows nothing at all. ' +
+      'Video has no transparency, so a recording still uses the colour below.'));
+    const bg = row();
+    bg.appendChild(fcolor('Video backdrop', () => doc.bg, v => { doc.bg = v; dirty(); }));
+    s1.appendChild(bg);
+  }
   insp.appendChild(s1);
 
   const s2 = sec('Timing');
@@ -2590,6 +2883,12 @@ function buildOneInspector(L){
   insp.appendChild(s1);
 
   /* Appearance */
+  if(L.type === 'vector'){
+    insp.appendChild(vectorSection(L));
+    insp.appendChild(arrangeSection([L]));
+    insp.appendChild(animSection([L]));
+    return;
+  }
   if(L.type !== 'group'){
     const s2 = sec('Appearance');
     if(L.type !== 'image'){
@@ -2618,6 +2917,12 @@ function buildOneInspector(L){
       s2.appendChild(frange('Sides', () => L.sides, v => setPlain(L,'sides',Math.round(v)), {min:3, max:24}));
     if(L.type === 'arrow' || L.type === 'cross')
       s2.appendChild(frange('Thickness', () => L.thick*100, v => setPlain(L,'thick',clamp(v/100,.05,.95)), {min:5, max:95, unit:'%'}));
+    if(L.type !== 'image' && L.type !== 'text'){
+      s2.appendChild(frange('Fill strength', () => (P(L).fillA == null ? 1 : P(L).fillA)*100,
+        v => setOne(L,'fillA',clamp(v/100,0,1)), {min:0, max:100, unit:'%'}));
+      s2.appendChild(frange('Outline drawn', () => (P(L).draw == null ? 1 : P(L).draw)*100,
+        v => setOne(L,'draw',clamp(v/100,0,1)), {min:0, max:100, unit:'%'}));
+    }
     insp.appendChild(s2);
   }
 
@@ -2691,6 +2996,67 @@ function buildSoundInspector(L){
   insp.appendChild(s4);
 }
 
+function vectorSection(L){
+  const s = sec('Traced shapes');
+  let cs = 0, pts = 0;
+  for(const p of L.paths){ cs += p.c.length; for(const c of p.c) pts += c.length; }
+  s.appendChild(el('div', 'ks-note',
+    L.paths.length + ' colours, ' + cs + ' outlines, ' + pts + ' points. ' +
+    'These are real vectors — scale them as far as you like and they stay crisp.'));
+
+  const ed = btn('Edit the outline points…', () => enterPoints(L), 'primary');
+  ed.style.width = '100%';
+  ed.style.justifyContent = 'center';
+  s.appendChild(ed);
+  s.appendChild(el('div', 'ks-note', 'Or double-click it on the stage.'));
+
+  s.appendChild(el('span', 'ks-lab', 'Colours'));
+  L.paths.forEach((p, i) => {
+    const rw = el('div', 'ks-vrow');
+    const inp = el('input');
+    inp.type = 'color';
+    inp.value = p.fill;
+    inp.className = 'chip';
+    inp.title = 'Recolour this shape';
+    inp.addEventListener('pointerdown', arm);
+    inp.addEventListener('input', () => { p.fill = inp.value; dirty(); });
+    inp.addEventListener('change', disarm);
+    rw.appendChild(inp);
+    let n = 0;
+    for(const c of p.c) n += c.length;
+    rw.appendChild(el('span', 'nm', p.c.length + (p.c.length === 1 ? ' outline, ' : ' outlines, ') + n + ' points'));
+    const x = el('button', 'ks-btn icon', '×');
+    x.title = 'Remove this colour from the drawing';
+    x.addEventListener('click', () => {
+      if(L.paths.length < 2){ toast('That is the only colour left — delete the layer instead.', true); return; }
+      arm();
+      L.paths.splice(i, 1);
+      L.maxLen = pathsLength(L.paths);
+      disarm();
+      buildInspector(); dirty();
+      toast('Colour removed');
+    });
+    rw.appendChild(x);
+    s.appendChild(rw);
+  });
+
+  s.appendChild(frange('Smoothing', () => L.smooth == null ? 1 : L.smooth,
+    v => { arm(); L.smooth = v; disarm(); dirty(); }, {min:0, max:1, step:.05}));
+  s.appendChild(frange('Fill strength', () => (P(L).fillA == null ? 1 : P(L).fillA)*100,
+    v => setOne(L, 'fillA', clamp(v/100, 0, 1)), {min:0, max:100, unit:'%'}));
+
+  s.appendChild(el('span', 'ks-lab', 'Outline'));
+  const r = row();
+  r.appendChild(fcolor('Colour', () => P(L).stroke, v => setOne(L, 'stroke', v)));
+  r.appendChild(fnum('Width', () => P(L).sw, v => setOne(L, 'sw', Math.max(0, v)), {min:0, max:60, dec:1}));
+  s.appendChild(r);
+  s.appendChild(btn('No outline', () => setOne(L, 'stroke', 'none')));
+  s.appendChild(frange('Drawn', () => (P(L).draw == null ? 1 : P(L).draw)*100,
+    v => setOne(L, 'draw', clamp(v/100, 0, 1)), {min:0, max:100, unit:'%'}));
+  s.appendChild(el('div', 'ks-note', 'Turn “drawn” down and animate it back up to make the outline draw itself. The Draw on movement does both for you.'));
+  return s;
+}
+
 function textSection(L){
   const s = sec('Text');
   const ta = el('textarea', 'ks-in');
@@ -2716,6 +3082,9 @@ function textSection(L){
   }
   s.appendChild(el('span', 'ks-lab', 'Alignment'));
   s.appendChild(al);
+  s.appendChild(frange('Typed out', () => (P(L).reveal == null ? 1 : P(L).reveal)*100,
+    v => setOne(L, 'reveal', clamp(v/100, 0, 1)), {min:0, max:100, unit:'%'}));
+  s.appendChild(el('div', 'ks-note', 'Animate this from nothing to all of it for a typewriter. The box keeps its full size so nothing jumps.'));
   return s;
 }
 function imageSection(L){
@@ -2742,6 +3111,15 @@ function imageSection(L){
   s.appendChild(fsel('Mask shape', [['none','No mask']].concat(
       ['ellipse','roundrect','star','polygon','heart','diamond','triangle','blob'].map(k => [k, SHAPE_LABEL[k]])),
     () => L.mask || 'none', v => setPlain(L,'mask',v)));
+
+  s.appendChild(el('span', 'ks-lab', 'Turn it into vector'));
+  const tb = btn('Trace to shapes…', () => traceDialog(L), 'primary');
+  tb.style.width = '100%';
+  tb.style.justifyContent = 'center';
+  s.appendChild(tb);
+  s.appendChild(el('div', 'ks-note',
+    'Redraws the picture as flat colour shapes: recolour them one by one, scale without blurring, ' +
+    'animate the outline drawing itself, and export real vectors to SVG.'));
   return s;
 }
 function adjSection(L){
@@ -2825,10 +3203,44 @@ function animSection(list){
       else app.defaultEase = v;
       $('#ks-ease').value = v;
     }));
+  /* keyframe housekeeping */
+  s.appendChild(el('span', 'ks-lab', 'All the keyframes on ' + (list.length === 1 ? 'this layer' : 'these layers')));
+  const util = el('div', 'ks-btnrow');
+  util.appendChild(btn('Reverse', () => reverseKeys(list)));
+  util.appendChild(btn('Slower', () => retimeKeys(list, 1.5)));
+  util.appendChild(btn('Faster', () => retimeKeys(list, 1/1.5)));
+  util.appendChild(btn('◀ 1', () => shiftKeys(list, -1)));
+  util.appendChild(btn('1 ▶', () => shiftKeys(list, 1)));
+  util.appendChild(btn('To playhead', () => {
+    const sp = keySpan(list[0]);
+    if(sp) shiftKeys(list, app.frame - sp.a); else toast('That layer has no keyframes to move.', true);
+  }));
+  util.appendChild(btn('Clear all', () => clearKeys(list)));
+  s.appendChild(util);
+
+  /* ready-made movement */
   s.appendChild(el('span', 'ks-lab', 'Ready-made movement'));
-  const g = el('div', 'ks-btnrow');
-  for(const k in PRESETS) g.appendChild(btn(PRESETS[k].label, () => applyPreset(k)));
-  s.appendChild(g);
+  if(list.length > 1){
+    const st = row('one');
+    st.appendChild(fnum('Stagger', () => app.stagger || 0,
+      v => { app.stagger = clamp(Math.round(v), 0, 240); }, {min:0, max:240, dec:0}));
+    s.appendChild(st);
+    s.appendChild(el('div', 'ks-note', 'Each layer starts this many frames after the one before it.'));
+  }
+  for(const grp of PRESET_GROUPS){
+    s.appendChild(el('span', 'ks-lab', grp[1]));
+    const g = el('div', 'ks-btnrow');
+    for(const k in PRESETS){
+      if(PRESETS[k].g !== grp[0]) continue;
+      const b = btn(PRESETS[k].label, () => applyPreset(k));
+      if(!list.some(L => presetFits(PRESETS[k], L))){
+        b.style.opacity = '.42';
+        b.title = NEEDS_WHY[PRESETS[k].needs] || '';
+      }
+      g.appendChild(b);
+    }
+    s.appendChild(g);
+  }
   return s;
 }
 function buildCropInspector(){
@@ -2909,7 +3321,8 @@ function layerIcon(L){
   if(L.type === 'group') return ICON.group;
   if(L.type === 'text')  return ICON.text;
   if(L.type === 'image') return ICON.image;
-  if(L.type === 'sound') return ICON.sound;
+  if(L.type === 'sound')  return ICON.sound;
+  if(L.type === 'vector') return ICON.vector;
   return ICON.shape;
 }
 function renderLayerList(){
@@ -3172,7 +3585,7 @@ function tlPoint(e, node){
           y: e.clientY - r.top};
 }
 rulerWrap.addEventListener('pointerdown', e => {
-  rulerWrap.setPointerCapture(e.pointerId);
+  capturePointer(rulerWrap, e.pointerId);
   const scrub = ev => gotoFrame(x2f(tlPoint(ev, rulerWrap).x));
   scrub(e);
   const move = ev => scrub(ev);
@@ -3240,7 +3653,7 @@ tracks.addEventListener('pointerdown', e => {
   }
   if(h) select(h.L.id);
   gotoFrame(x2f(px));
-  tracks.setPointerCapture(e.pointerId);
+  capturePointer(tracks, e.pointerId);
   const move = ev => gotoFrame(x2f(ev.clientX - tracksIn.getBoundingClientRect().left));
   const up = () => { tracks.removeEventListener('pointermove', move); tracks.removeEventListener('pointerup', up); };
   tracks.addEventListener('pointermove', move);
@@ -3350,10 +3763,11 @@ function ctx2d(c){
   return c.__ctx2d;
 }
 function renderFrameTo(c2, f, w, h, transparent){
+  if(transparent == null) transparent = doc.transparent;
   const g = ctx2d(c2);
   g.setTransform(1,0,0,1,0,0);
   g.clearRect(0, 0, w, h);
-  if(!transparent){ g.fillStyle = doc.bg; g.fillRect(0, 0, w, h); }
+  if(!transparent && !doc.transparent){ g.fillStyle = doc.bg; g.fillRect(0, 0, w, h); }
   g.save();
   g.scale(w/doc.w, h/doc.h);
   g.beginPath(); g.rect(0, 0, doc.w, doc.h); g.clip();
@@ -3395,7 +3809,7 @@ const HIST_N = new Uint32Array(32768);
 const HIST_R = new Float64Array(32768);
 const HIST_G = new Float64Array(32768);
 const HIST_B = new Float64Array(32768);
-function buildPalette(px, maxColors, alphaCut){
+function buildPalette(px, maxColors, alphaCut, refine){
   HIST_N.fill(0); HIST_R.fill(0); HIST_G.fill(0); HIST_B.fill(0);
   const hist = HIST_N;
   for(let i = 0; i < px.length; i += 4){
@@ -3452,6 +3866,30 @@ function buildPalette(px, maxColors, alphaCut){
     n = n || 1;
     return [Math.round(r/n), Math.round(g/n), Math.round(bl/n)];
   });
+  /* Optional Lloyd refinement. Median cut alone lets a big smooth gradient
+     drag a flat colour off its true value - a green shape over a blue ramp
+     comes back teal. A couple of reassign-and-recentre passes fixes that.
+     Only the tracer asks for this: at 256 colours it would be far too slow,
+     and the GIF encoder does not need it. */
+  if(refine > 0 && pal.length){
+    for(let it = 0; it < refine; it++){
+      const sr = new Float64Array(pal.length), sg = new Float64Array(pal.length);
+      const sb = new Float64Array(pal.length), sn = new Float64Array(pal.length);
+      for(const i of used){
+        const R = ((i >> 10) & 31), G = ((i >> 5) & 31), B = (i & 31);
+        const rr = (R << 3)|(R >> 2), gg = (G << 3)|(G >> 2), bb = (B << 3)|(B >> 2);
+        let best = 0, bd = Infinity;
+        for(let j = 0; j < pal.length; j++){
+          const p = pal[j];
+          const dd = (p[0]-rr)*(p[0]-rr) + (p[1]-gg)*(p[1]-gg) + (p[2]-bb)*(p[2]-bb);
+          if(dd < bd){ bd = dd; best = j; }
+        }
+        sr[best] += HIST_R[i]; sg[best] += HIST_G[i]; sb[best] += HIST_B[i]; sn[best] += hist[i];
+      }
+      for(let j = 0; j < pal.length; j++)
+        if(sn[j]) pal[j] = [Math.round(sr[j]/sn[j]), Math.round(sg[j]/sn[j]), Math.round(sb[j]/sn[j])];
+    }
+  }
   /* Lazily filled 5-bit lookup. A nearest-colour search per pixel over 256
      entries is unusably slow at full frame size. */
   return {pal, lut:new Int16Array(32768).fill(-1)};
@@ -3729,7 +4167,7 @@ function exportGifDialog(){
   modal('Export an animated GIF', body => {
     sizeSel = pick(body, 'Size', sizeOptions(), '1');
     fpsSel  = pick(body, 'Frame rate', [[doc.fps, doc.fps + ' fps - every frame'], [Math.max(1,Math.round(doc.fps/2)), Math.max(1,Math.round(doc.fps/2)) + ' fps - half the frames'], [12,'12 fps'], [10,'10 fps']], String(doc.fps));
-    tr = check(body, 'Transparent backdrop', false);
+    tr = check(body, 'Transparent backdrop', doc.transparent);
     body.appendChild(el('div', 'ks-note', 'GIFs hold 256 colours per frame, so gradients and photographs come out a little banded.'));
   }, [
     ['Cancel', closeModal],
@@ -3753,7 +4191,7 @@ function exportPngDialog(){
                                   [2,'2x - ' + doc.w*2 + ' x ' + doc.h*2],
                                   [3,'3x - ' + doc.w*3 + ' x ' + doc.h*3],
                                   [4,'4x - ' + doc.w*4 + ' x ' + doc.h*4]], '1');
-    tr = check(body, 'Transparent backdrop', false);
+    tr = check(body, 'Transparent backdrop', doc.transparent);
   }, [
     ['Cancel', closeModal],
     ['Export PNG', () => {
@@ -3796,6 +4234,7 @@ function exportWebmDialog(){
 }
 function startWebm(w, h, bitrate, withSound){
   const c2 = makeCanvas(w, h);
+  const solid = doc.transparent;   /* video cannot carry an alpha channel */
   const stream = c2.captureStream(doc.fps);
 
   /* mix the soundtrack straight into the recorded stream */
@@ -3842,14 +4281,16 @@ function startWebm(w, h, bitrate, withSound){
     const now = performance.now();
     const want = Math.floor((now - t0)/step);
     while(f <= want && f < doc.frames){
-      renderFrameTo(c2, f, w, h, false);
+      if(solid){ const g = ctx2d(c2); g.setTransform(1,0,0,1,0,0); g.fillStyle = doc.bg; g.fillRect(0,0,w,h); }
+      renderFrameTo(c2, f, w, h, solid ? true : false);
       f++;
     }
     bar(Math.min(1, f/doc.frames));
     if(f >= doc.frames){ setTimeout(() => rec.stop(), 260); return; }
     requestAnimationFrame(tick);
   }
-  renderFrameTo(c2, 0, w, h, false);
+  if(solid){ const g = ctx2d(c2); g.setTransform(1,0,0,1,0,0); g.fillStyle = doc.bg; g.fillRect(0,0,w,h); }
+  renderFrameTo(c2, 0, w, h, solid ? true : false);
   requestAnimationFrame(tick);
 }
 function progressModal(title, note){
@@ -3878,8 +4319,8 @@ function progressModal(title, note){
 function saveProject(){
   const data = {
     format:'phoenix-animation-studio', version:2,
-    name:doc.name, w:doc.w, h:doc.h, bg:doc.bg, frames:doc.frames, fps:doc.fps,
-    layers:doc.layers,
+    name:doc.name, w:doc.w, h:doc.h, bg:doc.bg, transparent:doc.transparent,
+    frames:doc.frames, fps:doc.fps, layers:doc.layers,
     assets:Array.from(assets.values()).map(a => ({id:a.id, name:a.name, w:a.w, h:a.h, src:a.src})),
     sounds:Array.from(sounds.values()).map(s => ({id:s.id, name:s.name, src:s.src}))
   };
@@ -3896,8 +4337,11 @@ function openProject(file){
     stopAudio(); assets.clear(); sounds.clear();
     doc.name = d.name || 'Untitled animation';
     doc.w = d.w || 960; doc.h = d.h || 540; doc.bg = d.bg || '#11141d';
+    doc.transparent = !!d.transparent;
     doc.frames = d.frames || 72; doc.fps = d.fps || 24;
     doc.layers = d.layers;
+    /* traced layers cache their longest outline; rebuild it after a reload */
+    walk(doc.layers, L => { if(L.type === 'vector' && L.paths) L.maxLen = pathsLength(L.paths); });
     app.sel = []; app.frame = 0;
     $('#ks-docname').value = doc.name;
     let pending = 0;
@@ -3922,7 +4366,7 @@ function newProject(){
     ['Clear and start over', () => {
       closeModal();
       doc.name = 'Untitled animation'; doc.layers = [];
-      doc.frames = 72; doc.fps = 24; doc.bg = '#11141d';
+      doc.frames = 72; doc.fps = 24; doc.bg = '#11141d'; doc.transparent = false;
       stopAudio(); assets.clear(); sounds.clear();
       app.sel = []; app.frame = 0;
       hist.past.length = 0; hist.future.length = 0;
@@ -4001,7 +4445,7 @@ function makeSound(soundId, startFrame){
   L.trimStart = 0; L.trimEnd = a ? a.duration : 0;
   L.loopClip = false;
   L.w = 1; L.h = 1;
-  delete L.fill; delete L.stroke;
+  delete L.fill; delete L.stroke; delete L.draw; delete L.fillA;
   return L;
 }
 function soundLayers(){
@@ -4300,14 +4744,40 @@ function layerSvg(L, frame, animate, pad){
     body = '<g transform="scale(' + n3(useW/gw) + ',' + n3(useH/gh) + ')"' +
            (p.opacity < 1 ? ' opacity="' + n3(p.opacity) + '"' : '') + '>\n' + inner + S + '  </g>';
   }
+  else if(L.type === 'vector'){
+    const sx = useW/Math.max(1, L.vw), sy = useH/Math.max(1, L.vh);
+    const len = L.maxLen || pathsLength(L.paths);
+    const fa = p.fillA == null ? 1 : p.fillA;
+    const dr = p.draw == null ? 1 : p.draw;
+    const strokeOn = p.stroke && p.stroke !== 'none' && p.sw > 0;
+    let inner = '';
+    for(const path of L.paths){
+      const dd = contoursD(path.c, L.smooth);
+      inner += '<path d="' + dd + '" fill="' + xe(path.fill) + '" fill-rule="evenodd"' +
+        (anim && varies(samples.map(s => n3(s.fillA == null ? 1 : s.fillA)))
+          ? '>' + smil('fill-opacity', samples.map(s => n3(s.fillA == null ? 1 : s.fillA)), dur) + '</path>'
+          : (fa < 1 ? ' fill-opacity="' + n3(fa) + '"/>' : '/>'));
+      if(strokeOn){
+        inner += '<path d="' + dd + '" fill="none" stroke="' + xe(p.stroke) + '" stroke-width="' +
+          n3(p.sw/Math.max(.0001,(sx+sy)/2)) + '" stroke-linejoin="round" stroke-linecap="round"' +
+          ' stroke-dasharray="' + n3(len) + ' ' + n3(len*1.4) + '"';
+        if(anim && varies(samples.map(s => n3(s.draw == null ? 1 : s.draw)))){
+          inner += ' stroke-dashoffset="' + n3(len) + '">' +
+            smil('stroke-dashoffset', samples.map(s => n3(len*(1 - (s.draw == null ? 1 : s.draw)))), dur) +
+            '</path>';
+        } else {
+          inner += ' stroke-dashoffset="' + n3(len*(1-dr)) + '"/>';
+        }
+      }
+    }
+    body = '<g transform="translate(' + n3(-useW/2) + ',' + n3(-useH/2) + ') scale(' + n3(sx) + ',' + n3(sy) + ')"' +
+           (p.opacity < 1 && !opAnim ? ' opacity="' + n3(p.opacity) + '"' : '') + '>' + opAnim + inner + '</g>';
+  }
   else if(L.type === 'text'){
-    const lines = textLines(L);
-    const lh = p.fs*1.25;
-    const align = L.align || 'center';
-    const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
-    const ax = align === 'left' ? -p.w/2 + 2 : align === 'right' ? p.w/2 - 2 : 0;
-    const top = -lines.length*lh/2 + lh/2;
-    let t = '<text x="' + n3(ax) + '" y="0" text-anchor="' + anchor + '" dominant-baseline="middle"' +
+    const rows = textLayout(L, p);
+    const revAnim = anim && varies(samples.map(s => n3(s.reveal == null ? 1 : s.reveal)));
+    const rev = p.reveal == null ? 1 : clamp(p.reveal, 0, 1);
+    let t = '<text x="0" y="0" text-anchor="start" dominant-baseline="middle"' +
       ' font-family="' + xe(L.family || 'Inter') + ', sans-serif"' +
       ' font-size="' + n3(p.fs) + '" font-weight="' + (L.weight || 600) + '"' +
       (p.spacing ? ' letter-spacing="' + n3(p.spacing) + '"' : '') +
@@ -4319,8 +4789,31 @@ function layerSvg(L, frame, animate, pad){
     if(anim && varies(samples.map(s => String(s.fill))))
       t += smil('fill', samples.map(s => s.fill === 'none' ? 'none' : s.fill), dur);
     t += opAnim;
-    for(let i = 0; i < lines.length; i++)
-      t += '<tspan x="' + n3(ax) + '" y="' + n3(top + lh*i) + '">' + xe(lines[i]) + '</tspan>';
+
+    if(revAnim){
+      /* a typewriter: one character per tspan, switched on at the frame it
+         appears, so the SVG types the same way the stage does */
+      const totalChars = rows.reduce((n, r) => n + r.chars.length, 0);
+      const shownAt = samples.map(s => Math.floor(totalChars*clamp(s.reveal == null ? 1 : s.reveal, 0, 1)));
+      let idx = 0;
+      for(const r of rows){
+        for(const c of r.chars){
+          const me = idx++;
+          const vals = shownAt.map(n => n > me ? '1' : '0');
+          t += '<tspan x="' + n3(c.x) + '" y="' + n3(c.y) + '" opacity="' + vals[0] + '">' +
+               '<animate attributeName="opacity" values="' + vals.join(';') +
+               '" dur="' + n3(dur) + 's" repeatCount="indefinite" calcMode="discrete"/>' +
+               xe(c.ch) + '</tspan>';
+        }
+      }
+    } else {
+      let left = Math.floor(rows.reduce((n, r) => n + r.text.length, 0) * rev);
+      for(const r of rows){
+        const take = rev >= 1 ? r.text.length : Math.max(0, Math.min(r.text.length, left));
+        if(rev < 1) left -= take;
+        t += '<tspan x="' + n3(r.x) + '" y="' + n3(r.y) + '">' + xe(r.text.slice(0, take)) + '</tspan>';
+      }
+    }
     t += '</text>';
     body = t;
   }
@@ -4371,7 +4864,8 @@ function svgDoc(frame, animate){
   parts.push('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ' +
              'width="' + doc.w + '" height="' + doc.h + '" viewBox="0 0 ' + doc.w + ' ' + doc.h + '">');
   parts.push('  <title>' + xe(doc.name) + '</title>');
-  parts.push('  <rect width="' + doc.w + '" height="' + doc.h + '" fill="' + xe(doc.bg) + '"/>');
+  if(!doc.transparent)
+    parts.push('  <rect width="' + doc.w + '" height="' + doc.h + '" fill="' + xe(doc.bg) + '"/>');
   parts.push('  <g transform="translate(0,0)">');
   for(const L of doc.layers) parts.push(layerSvg(L, frame, animate, '    ').replace(/\n$/, ''));
   parts.push('  </g>');
@@ -4404,6 +4898,892 @@ function exportSvgDialog(){
       }catch(e){ reportFail('SVG', e); }
     }, 'primary']
   ]);
+}
+/* ==========================================================================
+   VECTORISING A PICTURE
+   Posterise to a handful of colours, walk the border of each colour region,
+   simplify the outline, then keep the result as contours. One emitter turns
+   those contours into either canvas path calls or SVG path data, so the two
+   can never drift apart.
+   ========================================================================== */
+
+/* ---- the shared emitter ---- */
+function canvasSink(c){
+  return {
+    move : (x,y) => c.moveTo(x,y),
+    line : (x,y) => c.lineTo(x,y),
+    curve: (a,b,d2,e2,x,y) => c.bezierCurveTo(a,b,d2,e2,x,y),
+    close: () => c.closePath()
+  };
+}
+function stringSink(){
+  const out = [];
+  const N = v => Math.round(v*100)/100;
+  return {
+    move : (x,y) => out.push('M' + N(x) + ',' + N(y)),
+    line : (x,y) => out.push('L' + N(x) + ',' + N(y)),
+    curve: (a,b,d2,e2,x,y) => out.push('C' + N(a) + ',' + N(b) + ' ' + N(d2) + ',' + N(e2) + ' ' + N(x) + ',' + N(y)),
+    close: () => out.push('Z'),
+    d    : () => out.join('')
+  };
+}
+/* Catmull-Rom through the points, expressed as cubics. smooth is 0..1.
+   Smoothing is switched off at genuine corners: rounding a traced rectangle
+   into a blob is the single most obvious way to make a trace look wrong, and
+   a plain Catmull-Rom does exactly that when RDP has left only the corners.
+   The handles are also clamped to a third of the segment so uneven spacing
+   cannot make the curve overshoot the points it is meant to pass through. */
+function crHandle(a, b, k, seg){
+  let hx = (a[0]-b[0])/6*k, hy = (a[1]-b[1])/6*k;
+  const L = Math.hypot(hx, hy), max = seg/3;
+  if(L > max && L > 0){ hx *= max/L; hy *= max/L; }
+  return [hx, hy];
+}
+function emitContours(contours, smooth, sink){
+  for(const pts of contours){
+    const n = pts.length;
+    if(n < 3) continue;
+    const t = clamp(smooth || 0, 0, 1);
+    sink.move(pts[0][0], pts[0][1]);
+    if(t <= 0){
+      for(let i = 1; i < n; i++) sink.line(pts[i][0], pts[i][1]);
+      sink.close();
+      continue;
+    }
+    /* 1 where the outline runs almost straight, 0 at a hard corner.
+       A third element on a point pins it as a corner by hand. */
+    const soft = new Float64Array(n);
+    for(let i = 0; i < n; i++){
+      if(pts[i][2]){ soft[i] = 0; continue; }
+      const a = pts[(i-1+n)%n], b = pts[i], c = pts[(i+1)%n];
+      const ux = b[0]-a[0], uy = b[1]-a[1], vx = c[0]-b[0], vy = c[1]-b[1];
+      const lu = Math.hypot(ux,uy) || 1, lv = Math.hypot(vx,vy) || 1;
+      const cos = (ux*vx + uy*vy)/(lu*lv);
+      soft[i] = clamp((cos - 0.35)/(0.92 - 0.35), 0, 1);
+    }
+    for(let i = 0; i < n; i++){
+      const p0 = pts[(i-1+n)%n], p1 = pts[i], p2 = pts[(i+1)%n], p3 = pts[(i+2)%n];
+      const seg = Math.hypot(p2[0]-p1[0], p2[1]-p1[1]) || 1;
+      const h1 = crHandle(p2, p0, t*soft[i], seg);
+      const h2 = crHandle(p1, p3, t*soft[(i+1)%n], seg);
+      /* a corner-to-corner run is a straight line; say so, rather than
+         emitting a cubic whose control points sit on its own endpoints */
+      if(Math.abs(h1[0]) + Math.abs(h1[1]) + Math.abs(h2[0]) + Math.abs(h2[1]) < 1e-6){
+        if(i < n-1) sink.line(p2[0], p2[1]);   /* the closing run is Z's job */
+      } else
+        sink.curve(p1[0]+h1[0], p1[1]+h1[1], p2[0]-h2[0], p2[1]-h2[1], p2[0], p2[1]);
+    }
+    sink.close();
+  }
+}
+function contoursD(contours, smooth){
+  const s = stringSink();
+  emitContours(contours, smooth, s);
+  return s.d();
+}
+function contourLength(pts){
+  let L = 0;
+  for(let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]);
+  if(pts.length > 2) L += Math.hypot(pts[0][0]-pts[pts.length-1][0], pts[0][1]-pts[pts.length-1][1]);
+  return L;
+}
+function pathsLength(paths){
+  let m = 0;
+  for(const p of paths) for(const c of p.c){ const L = contourLength(c); if(L > m) m = L; }
+  return m || 1;
+}
+
+/* ---- geometry helpers ---- */
+function shoelace(pts){
+  let a = 0;
+  for(let i = 0, n = pts.length; i < n; i++){
+    const p = pts[i], q = pts[(i+1)%n];
+    a += p[0]*q[1] - q[0]*p[1];
+  }
+  return a/2;
+}
+function dropCollinear(pts){
+  const out = [];
+  const n = pts.length;
+  for(let i = 0; i < n; i++){
+    const a = pts[(i-1+n)%n], b = pts[i], c = pts[(i+1)%n];
+    const cross = (b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0]);
+    if(Math.abs(cross) > 1e-9) out.push(b);
+  }
+  return out.length >= 3 ? out : pts;
+}
+/* Ramer-Douglas-Peucker, iterative so a long outline cannot blow the stack */
+function rdp(pts, eps){
+  if(pts.length < 3 || eps <= 0) return pts;
+  const keep = new Uint8Array(pts.length);
+  keep[0] = keep[pts.length-1] = 1;
+  const stack = [[0, pts.length-1]];
+  while(stack.length){
+    const [i0, i1] = stack.pop();
+    if(i1 <= i0 + 1) continue;
+    const a = pts[i0], b = pts[i1];
+    const dx = b[0]-a[0], dy = b[1]-a[1];
+    const len = Math.hypot(dx, dy) || 1;
+    let worst = -1, wi = -1;
+    for(let i = i0+1; i < i1; i++){
+      const p = pts[i];
+      const dist = Math.abs(dy*p[0] - dx*p[1] + b[0]*a[1] - b[1]*a[0])/len;
+      if(dist > worst){ worst = dist; wi = i; }
+    }
+    if(worst > eps){ keep[wi] = 1; stack.push([i0, wi], [wi, i1]); }
+  }
+  const out = [];
+  for(let i = 0; i < pts.length; i++) if(keep[i]) out.push(pts[i]);
+  return out;
+}
+/* A closed outline has no natural start and end, and feeding one straight to
+   RDP makes the anchor segment zero length - every perpendicular distance
+   then degenerates and the whole outline collapses to a couple of points.
+   Split it at the point furthest from the first, and simplify the two halves. */
+function rdpClosed(pts, eps){
+  if(pts.length < 4 || eps <= 0) return pts;
+  let fi = 1, fd = -1;
+  for(let i = 1; i < pts.length; i++){
+    const dx = pts[i][0]-pts[0][0], dy = pts[i][1]-pts[0][1];
+    const dd = dx*dx + dy*dy;
+    if(dd > fd){ fd = dd; fi = i; }
+  }
+  const a = rdp(pts.slice(0, fi+1), eps);
+  const b = rdp(pts.slice(fi).concat([pts[0]]), eps);
+  b.shift();            /* shared with the end of a */
+  b.pop();              /* the wrap-around copy of pts[0] */
+  const out = a.concat(b);
+  return out.length >= 3 ? out : pts;
+}
+
+/* ---- border following ----
+   Every filled pixel contributes the sides that face empty space, wound so
+   the filled region is consistently on one hand. Outer edges come out one
+   way round and holes the other, which is exactly what even-odd filling
+   needs to punch the holes for us. */
+function traceMask(mask, W, H){
+  const at = (x,y) => (x < 0 || y < 0 || x >= W || y >= H) ? 0 : mask[y*W + x];
+  const key = (x,y) => y*(W+1) + x;
+  const edges = new Map();
+  const push = (sx,sy,ex,ey) => {
+    const k = key(sx,sy);
+    let a = edges.get(k);
+    if(!a){ a = []; edges.set(k, a); }
+    a.push(ex, ey);
+  };
+  for(let y = 0; y < H; y++){
+    for(let x = 0; x < W; x++){
+      if(!mask[y*W + x]) continue;
+      if(!at(x, y-1)) push(x, y, x+1, y);
+      if(!at(x+1, y)) push(x+1, y, x+1, y+1);
+      if(!at(x, y+1)) push(x+1, y+1, x, y+1);
+      if(!at(x-1, y)) push(x, y+1, x, y);
+    }
+  }
+  const contours = [];
+  const limit = 8*(W+1)*(H+1);
+  for(const k of Array.from(edges.keys())){
+    const arr = edges.get(k);
+    while(arr && arr.length){
+      const sx = k % (W+1), sy = (k - sx)/(W+1);
+      const ey = arr.pop(), ex = arr.pop();   /* pushed as ex,ey - so pop gives ey first */
+      const pts = [[sx, sy]];
+      let px = sx, py = sy, x = ex, y = ey, guard = 0;
+      while((x !== sx || y !== sy) && guard++ < limit){
+        pts.push([x, y]);
+        const nk = key(x, y);
+        const nx = edges.get(nk);
+        if(!nx || !nx.length) break;
+        const dx = x - px, dy = y - py;
+        let bi = 0;
+        for(let i = 0; i < nx.length; i += 2){
+          if(nx[i] - x === dx && nx[i+1] - y === dy){ bi = i; break; }
+        }
+        const tx = nx[bi], ty = nx[bi+1];
+        nx.splice(bi, 2);
+        px = x; py = y; x = tx; y = ty;
+      }
+      if(pts.length >= 4) contours.push(pts);
+    }
+  }
+  return contours;
+}
+
+/* a 3x3 majority pass; the cheapest way to stop single pixels becoming paths */
+function despeckle(idx, W, H, passes){
+  let src = idx;
+  for(let p = 0; p < passes; p++){
+    const dst = src.slice();
+    const count = new Map();
+    for(let y = 1; y < H-1; y++){
+      for(let x = 1; x < W-1; x++){
+        count.clear();
+        let best = src[y*W + x], bestN = 0;
+        for(let j = -1; j <= 1; j++){
+          for(let i = -1; i <= 1; i++){
+            const v = src[(y+j)*W + x + i];
+            const n = (count.get(v) || 0) + 1;
+            count.set(v, n);
+            if(n > bestN){ bestN = n; best = v; }
+          }
+        }
+        if(bestN >= 6) dst[y*W + x] = best;
+      }
+    }
+    src = dst;
+  }
+  return src;
+}
+
+/* ---- the tracer ---- */
+async function traceToPaths(sampleCanvas, opts, onProgress){
+  const W = sampleCanvas.width, H = sampleCanvas.height;
+  const g = ctx2d(sampleCanvas);
+  const px = g.getImageData(0, 0, W, H).data;
+
+  const K = clamp(Math.round(opts.colors || 12), 2, 32);
+  const q = buildPalette(px, K, true, opts.refine == null ? 4 : opts.refine);
+  const idx0 = new Int16Array(W*H);
+  for(let i = 0, p = 0; i < px.length; i += 4, p++){
+    idx0[p] = px[i+3] < 128 ? -1 : lookup(q, px[i], px[i+1], px[i+2]);
+  }
+  const idx = opts.clean > 0 ? despeckle(idx0, W, H, clamp(Math.round(opts.clean), 0, 4)) : idx0;
+
+  /* the backdrop is whichever colour owns most of the border */
+  let skip = -1;
+  if(opts.dropBackground){
+    const votes = new Map();
+    const vote = i => { const v = idx[i]; if(v < 0) return; votes.set(v, (votes.get(v) || 0) + 1); };
+    for(let x = 0; x < W; x++){ vote(x); vote((H-1)*W + x); }
+    for(let y = 0; y < H; y++){ vote(y*W); vote(y*W + W - 1); }
+    let bn = 0;
+    for(const [k, n] of votes) if(n > bn){ bn = n; skip = k; }
+  }
+
+  const eps = Math.max(0, opts.detail == null ? 1 : opts.detail);
+  const minArea = Math.max(0, opts.minArea == null ? 12 : opts.minArea);
+  const groups = [];
+  const mask = new Uint8Array(W*H);
+
+  for(let k = 0; k < q.pal.length; k++){
+    if(k === skip){ if(onProgress) onProgress((k+1)/q.pal.length); continue; }
+    mask.fill(0);
+    let n = 0;
+    for(let p = 0; p < idx.length; p++) if(idx[p] === k){ mask[p] = 1; n++; }
+    if(!n){ if(onProgress) onProgress((k+1)/q.pal.length); continue; }
+
+    let cs = traceMask(mask, W, H);
+    const kept = [];
+    let area = 0;
+    for(let c of cs){
+      c = dropCollinear(c);
+      if(eps > 0) c = rdpClosed(c, eps);
+      if(c.length < 3) continue;
+      const a = Math.abs(shoelace(c));
+      if(a < minArea) continue;
+      kept.push(c);
+      area += a;
+    }
+    if(kept.length) groups.push({c:kept, fill:rgbToHex(q.pal[k]), area});
+    if(onProgress) onProgress((k+1)/q.pal.length);
+    await new Promise(r => setTimeout(r, 0));
+  }
+  /* biggest regions first, so the background sits behind the detail */
+  groups.sort((a,b) => b.area - a.area);
+  return {vw:W, vh:H, paths:groups};
+}
+
+/* render the source (respecting any crop) into a canvas at tracing size */
+function sampleFromLayer(L, maxDim){
+  const a = assets.get(L.assetId);
+  if(!a || !a.ready) return null;
+  const c = L.crop || {x:0, y:0, w:a.w, h:a.h};
+  const k = Math.min(1, maxDim/Math.max(c.w, c.h));
+  const cv2 = makeCanvas(Math.max(2, Math.round(c.w*k)), Math.max(2, Math.round(c.h*k)));
+  const g = ctx2d(cv2);
+  g.clearRect(0, 0, cv2.width, cv2.height);
+  g.drawImage(a.img, clamp(c.x,0,a.w), clamp(c.y,0,a.h), Math.max(1,c.w), Math.max(1,c.h),
+              0, 0, cv2.width, cv2.height);
+  return cv2;
+}
+
+function makeVector(traced, name, x, y, w, h){
+  const L = baseLayer('vector', name || 'Traced picture');
+  L.paths = traced.paths.map(p => ({c:p.c, fill:p.fill}));
+  L.vw = traced.vw; L.vh = traced.vh;
+  L.smooth = 1;
+  L.x = x; L.y = y; L.w = w; L.h = h;
+  L.fill = 'none'; L.stroke = 'none'; L.sw = 0;
+  L.maxLen = pathsLength(L.paths);
+  return L;
+}
+function vectorPointCount(L){
+  let n = 0;
+  for(const p of L.paths) for(const c of p.c) n += c.length;
+  return n;
+}
+
+/* ---- drawing ---- */
+function drawVector(ctx, L, p, alpha){
+  if(!L.paths || !L.paths.length) return;
+  const sx = p.w/Math.max(1, L.vw), sy = p.h/Math.max(1, L.vh);
+  ctx.save();
+  ctx.translate(-p.w/2, -p.h/2);
+  ctx.scale(sx, sy);
+  const fa = clamp(p.fillA == null ? 1 : p.fillA, 0, 1);
+  const dr = clamp(p.draw == null ? 1 : p.draw, 0, 1);
+  const strokeOn = p.stroke && p.stroke !== 'none' && p.sw > 0;
+  for(const path of L.paths){
+    ctx.beginPath();
+    emitContours(path.c, L.smooth, canvasSink(ctx));
+    if(path.fill && path.fill !== 'none' && fa > 0.001){
+      ctx.globalAlpha = alpha * fa;
+      ctx.fillStyle = path.fill;
+      ctx.fill('evenodd');
+    }
+    if(strokeOn){
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = p.stroke;
+      ctx.lineWidth = p.sw/Math.max(.0001, (sx+sy)/2);
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      applyDash(ctx, dr, L.maxLen || pathsLength(L.paths));
+      ctx.stroke();
+      if(ctx.setLineDash) ctx.setLineDash([]);
+    }
+  }
+  ctx.globalAlpha = alpha;
+  ctx.restore();
+}
+/* draw-on: reveal a fraction of each subpath. Canvas restarts the dash
+   pattern on every subpath, which is what makes this read as "drawing". */
+function applyDash(ctx, draw, len){
+  if(!ctx.setLineDash) return;
+  if(draw >= 1){ ctx.setLineDash([]); return; }
+  const L = Math.max(1, len);
+  ctx.setLineDash([L*draw, L*1.4]);
+  ctx.lineDashOffset = 0;
+}
+function vectorHit(L, lx, ly, p){
+  const sx = p.w/Math.max(1, L.vw), sy = p.h/Math.max(1, L.vh);
+  const vx = (lx + p.w/2)/sx, vy = (ly + p.h/2)/sy;
+  if(vx < -2 || vy < -2 || vx > L.vw+2 || vy > L.vh+2) return false;
+  hitCtx.setTransform(1,0,0,1,0,0);
+  for(const path of L.paths){
+    hitCtx.beginPath();
+    emitContours(path.c, L.smooth, canvasSink(hitCtx));
+    if(hitCtx.isPointInPath(vx, vy, 'evenodd')) return true;
+  }
+  return false;
+}
+
+/* ---- the dialog ---- */
+function traceDialog(L){
+  const a = assets.get(L.assetId);
+  if(!a || !a.ready){ toast('That picture is still loading — try again in a moment.', true); return; }
+  let colorsIn, detailIn, smoothIn, cleanIn, minIn, dropIn, prevCv, info, busy = false, last = null;
+
+  /* a click that lands while the preview is still tracing must wait its turn,
+     not quietly do nothing */
+  const untilFree = async () => {
+    let n = 0;
+    while(busy && n++ < 400) await new Promise(r => setTimeout(r, 25));
+  };
+  const run = async (preview) => {
+    await untilFree();
+    busy = true;
+    const opts = {
+      colors : parseInt(colorsIn.value, 10),
+      detail : parseFloat(detailIn.value),
+      clean  : parseInt(cleanIn.value, 10),
+      minArea: parseFloat(minIn.value),
+      dropBackground: dropIn.checked
+    };
+    const smooth = parseFloat(smoothIn.value);
+    const sample = sampleFromLayer(L, preview ? 220 : 560);
+    if(!sample){ busy = false; return null; }
+    const traced = await traceToPaths(sample, opts, null);
+    traced.smooth = smooth;
+    busy = false;
+    return traced;
+  };
+  const repaint = async () => {
+    const traced = await run(true);
+    if(!traced) return;
+    last = traced;
+    const g = ctx2d(prevCv);
+    g.setTransform(1,0,0,1,0,0);
+    g.clearRect(0, 0, prevCv.width, prevCv.height);
+    /* chequerboard so a dropped background is unmistakable */
+    const sq = 10;
+    g.fillStyle = CC.panel2;
+    g.fillRect(0, 0, prevCv.width, prevCv.height);
+    g.fillStyle = CC.panel;
+    for(let y = 0; y < prevCv.height; y += sq)
+      for(let x = 0; x < prevCv.width; x += sq)
+        if(((x/sq | 0) + (y/sq | 0)) % 2) g.fillRect(x, y, sq, sq);
+    const k = Math.min(prevCv.width/traced.vw, prevCv.height/traced.vh);
+    g.save();
+    g.translate((prevCv.width - traced.vw*k)/2, (prevCv.height - traced.vh*k)/2);
+    g.scale(k, k);
+    for(const path of traced.paths){
+      g.beginPath();
+      emitContours(path.c, traced.smooth, canvasSink(g));
+      g.fillStyle = path.fill;
+      g.fill('evenodd');
+    }
+    g.restore();
+    let pts = 0, cs = 0;
+    for(const p of traced.paths) for(const c of p.c){ cs++; pts += c.length; }
+    info.textContent = traced.paths.length + ' colours, ' + cs + ' outlines, ' + pts + ' points.';
+  };
+
+  modal('Trace ' + L.name + ' to vector', body => {
+    body.appendChild(el('div', 'ks-note',
+      'This redraws the picture as flat colour shapes you can recolour, scale without blurring, ' +
+      'animate and export as real SVG. Bold artwork and logos trace beautifully; photographs come out as posters.'));
+
+    const mk = (label, id, min, max, step, val, unit) => {
+      const wrap = el('div');
+      const head = el('div', 'ks-lab');
+      head.innerHTML = esc(label) + ' <span></span>';
+      const out = head.querySelector('span');
+      const r = el('input', 'ks-in');
+      r.type = 'range'; r.min = min; r.max = max; r.step = step; r.value = val;
+      out.textContent = val + (unit || '');
+      r.addEventListener('input', () => { out.textContent = r.value + (unit || ''); });
+      r.addEventListener('change', repaint);
+      wrap.appendChild(head); wrap.appendChild(r);
+      body.appendChild(wrap);
+      return r;
+    };
+    colorsIn = mk('Colours', 'c', 2, 24, 1, 12, '');
+    detailIn = mk('Detail', 'd', 0, 6, .25, 1, ' px');
+    smoothIn = mk('Smoothing', 's', 0, 1, .05, 1, '');
+    cleanIn  = mk('Tidy up speckle', 'k', 0, 4, 1, 1, ' passes');
+    minIn    = mk('Ignore areas under', 'm', 0, 200, 5, 15, ' px');
+    dropIn = check(body, 'Drop the background', false);
+    dropIn.addEventListener('change', repaint);
+    body.appendChild(el('div', 'ks-note',
+      'Leaves out whichever colour owns the edges of the picture, so the shapes sit on nothing.'));
+
+    body.appendChild(el('span', 'ks-lab', 'Preview'));
+    prevCv = document.createElement('canvas');
+    prevCv.width = 380; prevCv.height = 220;
+    prevCv.style.cssText = 'width:100%;height:auto;border:1px solid var(--ks-line);border-radius:6px;background:var(--ks-sunken);display:block;';
+    ctx2d(prevCv);
+    body.appendChild(prevCv);
+    info = el('div', 'ks-note', 'Tracing…');
+    body.appendChild(info);
+    setTimeout(repaint, 30);
+  }, [
+    ['Cancel', closeModal],
+    ['Trace and replace', async () => {
+      const traced = await run(false);
+      if(!traced) throw new Error('The picture could not be read for tracing.');
+      traced.smooth = parseFloat(smoothIn.value);
+      applyTrace(L, traced, true);
+    }],
+    ['Trace and keep the picture', async () => {
+      const traced = await run(false);
+      if(!traced) throw new Error('The picture could not be read for tracing.');
+      traced.smooth = parseFloat(smoothIn.value);
+      applyTrace(L, traced, false);
+    }, 'primary']
+  ]);
+}
+function applyTrace(L, traced, replace){
+  arm();
+  const p = eff(L, app.frame);
+  const V = makeVector(traced, L.name + ' traced', p.x, p.y, p.w, p.h);
+  V.smooth = traced.smooth;
+  V.rot = p.rot; V.opacity = p.opacity;
+  const sibs = siblingsOf(L.id);
+  const i = sibs.findIndex(s => s.id === L.id);
+  if(replace) sibs.splice(i, 1, V);
+  else sibs.splice(i+1, 0, V);
+  disarm();
+  closeModal();
+  select(V.id);
+  renderLayerList(); buildInspector(); dirty(); dirtyTl();
+  let cs = 0;
+  for(const q of V.paths) cs += q.c.length;
+  toast('Traced into ' + V.paths.length + ' colours and ' + cs + ' outlines');
+}
+/* ==========================================================================
+   EDITING THE OUTLINE, POINT BY POINT
+   A traced layer is just lists of boundary points. This lets you grab any one
+   of them and move it, add points, take them away, and decide which ones are
+   hard corners. The maths is rebuilt every frame from the layer's live
+   transform, so editing keeps working on a layer that is being animated.
+   ========================================================================== */
+const PT_SIZE = 6, PT_GRAB = 7;
+
+function ptKey(pi, ci, i){ return pi + ':' + ci + ':' + i; }
+function ptParse(k){ const a = k.split(':'); return {pi:+a[0], ci:+a[1], i:+a[2]}; }
+
+function enterPoints(L){
+  if(L.type !== 'vector'){ toast('Only traced pictures have outlines to edit.', true); return; }
+  app.editPts = {id:L.id, sel:new Set(), drag:null, marq:null};
+  app.cropping = null;
+  hint('Drag the points to reshape. Alt-click a line to add one, Delete to remove. Escape when you are done.');
+  buildInspector(); dirty();
+}
+function exitPoints(){
+  app.editPts = null;
+  buildInspector(); dirty();
+}
+function ptCtx(){
+  const E = app.editPts;
+  if(!E) return null;
+  const L = findLayer(E.id);
+  if(!L || L.type !== 'vector'){ app.editPts = null; return null; }
+  const p = eff(L, app.frame);
+  const m = boxM(L, app.frame, parentM(L, app.frame));
+  const inv = mInv(m);
+  const sx = p.w/Math.max(1, L.vw), sy = p.h/Math.max(1, L.vh);
+  return {
+    L, p, m, sx, sy, E,
+    toScreen(vx, vy){
+      const w = mApply(m, vx*sx - p.w/2, vy*sy - p.h/2);
+      return w2s(w.x, w.y);
+    },
+    toVec(px, py){
+      const w = s2w(px, py);
+      const l = mApply(inv, w.x, w.y);
+      return {x:(l.x + p.w/2)/sx, y:(l.y + p.h/2)/sy};
+    }
+  };
+}
+
+/* ---------------------------------------------------------------- drawing */
+function drawPointsOverlay(){
+  const C = ptCtx();
+  if(!C) return;
+  const {L, E} = C;
+
+  /* the outline being edited, so it reads even over a busy fill */
+  octx.save();
+  octx.strokeStyle = CC.blue;
+  octx.lineWidth = 1;
+  octx.globalAlpha = .85;
+  for(const path of L.paths){
+    for(const c of path.c){
+      octx.beginPath();
+      for(let i = 0; i < c.length; i++){
+        const s = C.toScreen(c[i][0], c[i][1]);
+        i ? octx.lineTo(s.x, s.y) : octx.moveTo(s.x, s.y);
+      }
+      octx.closePath();
+      octx.stroke();
+    }
+  }
+  octx.globalAlpha = 1;
+
+  /* the points themselves */
+  for(let pi = 0; pi < L.paths.length; pi++){
+    const path = L.paths[pi];
+    for(let ci = 0; ci < path.c.length; ci++){
+      const c = path.c[ci];
+      for(let i = 0; i < c.length; i++){
+        const s = C.toScreen(c[i][0], c[i][1]);
+        if(s.x < -20 || s.y < -20 || s.x > VW+20 || s.y > VH+20) continue;
+        const on = E.sel.has(ptKey(pi, ci, i));
+        const corner = !!c[i][2];
+        octx.beginPath();
+        if(corner) octx.rect(s.x - PT_SIZE/2, s.y - PT_SIZE/2, PT_SIZE, PT_SIZE);
+        else octx.arc(s.x, s.y, PT_SIZE/2, 0, Math.PI*2);
+        octx.fillStyle = on ? CC.blue : CC.bg;
+        octx.fill();
+        octx.lineWidth = on ? 2 : 1.2;
+        octx.strokeStyle = on ? CC.ink : CC.blue;
+        octx.stroke();
+      }
+    }
+  }
+  if(E.marq){
+    const m = E.marq;
+    octx.save();
+    octx.fillStyle = 'rgba(90,162,232,.14)';
+    octx.strokeStyle = CC.blue;
+    octx.lineWidth = 1;
+    octx.setLineDash([4,3]);
+    const x = Math.min(m.x0,m.x1), y = Math.min(m.y0,m.y1);
+    octx.fillRect(x, y, Math.abs(m.x1-m.x0), Math.abs(m.y1-m.y0));
+    octx.strokeRect(x+.5, y+.5, Math.abs(m.x1-m.x0), Math.abs(m.y1-m.y0));
+    octx.restore();
+  }
+  octx.restore();
+}
+
+/* ------------------------------------------------------------- hit testing */
+function pointAt(px, py){
+  const C = ptCtx();
+  if(!C) return null;
+  const L = C.L;
+  let best = null, bd = PT_GRAB*PT_GRAB;
+  for(let pi = 0; pi < L.paths.length; pi++){
+    const path = L.paths[pi];
+    for(let ci = 0; ci < path.c.length; ci++){
+      const c = path.c[ci];
+      for(let i = 0; i < c.length; i++){
+        const s = C.toScreen(c[i][0], c[i][1]);
+        const d = (s.x-px)*(s.x-px) + (s.y-py)*(s.y-py);
+        if(d <= bd){ bd = d; best = {pi, ci, i}; }
+      }
+    }
+  }
+  return best;
+}
+/* nearest place on any outline to drop a new point */
+function segmentAt(px, py){
+  const C = ptCtx();
+  if(!C) return null;
+  const L = C.L;
+  let best = null, bd = 12*12;
+  for(let pi = 0; pi < L.paths.length; pi++){
+    const path = L.paths[pi];
+    for(let ci = 0; ci < path.c.length; ci++){
+      const c = path.c[ci];
+      for(let i = 0; i < c.length; i++){
+        const a = C.toScreen(c[i][0], c[i][1]);
+        const b = C.toScreen(c[(i+1)%c.length][0], c[(i+1)%c.length][1]);
+        const dx = b.x-a.x, dy = b.y-a.y;
+        const L2 = dx*dx + dy*dy;
+        const t = L2 ? clamp(((px-a.x)*dx + (py-a.y)*dy)/L2, 0, 1) : 0;
+        const qx = a.x + dx*t, qy = a.y + dy*t;
+        const d = (qx-px)*(qx-px) + (qy-py)*(qy-py);
+        if(d <= bd){ bd = d; best = {pi, ci, i, t}; }
+      }
+    }
+  }
+  return best;
+}
+
+/* -------------------------------------------------------------- operations */
+function refreshVector(L){
+  L.maxLen = pathsLength(L.paths);
+  dirty();
+}
+function addPointAt(seg){
+  const C = ptCtx();
+  if(!C || !seg) return;
+  const c = C.L.paths[seg.pi].c[seg.ci];
+  const a = c[seg.i], b = c[(seg.i+1)%c.length];
+  arm();
+  c.splice(seg.i+1, 0, [a[0] + (b[0]-a[0])*seg.t, a[1] + (b[1]-a[1])*seg.t]);
+  disarm();
+  C.E.sel = new Set([ptKey(seg.pi, seg.ci, seg.i+1)]);
+  refreshVector(C.L);
+  buildInspector();
+}
+function deleteSelectedPoints(){
+  const C = ptCtx();
+  if(!C || !C.E.sel.size) return;
+  const L = C.L;
+  arm();
+  /* group the doomed indices per contour so the splices do not shift each other */
+  const byContour = new Map();
+  for(const k of C.E.sel){
+    const q = ptParse(k);
+    const id = q.pi + ':' + q.ci;
+    if(!byContour.has(id)) byContour.set(id, []);
+    byContour.get(id).push(q.i);
+  }
+  let removedContours = 0, removedPts = 0;
+  for(const [id, list] of byContour){
+    const [pi, ci] = id.split(':').map(Number);
+    const c = L.paths[pi].c[ci];
+    if(!c) continue;
+    if(c.length - list.length < 3){ c.length = 0; continue; }
+    list.sort((a,b) => b-a);
+    for(const i of list){ c.splice(i, 1); removedPts++; }
+  }
+  for(const path of L.paths){
+    const before = path.c.length;
+    path.c = path.c.filter(c => c.length >= 3);
+    removedContours += before - path.c.length;
+  }
+  L.paths = L.paths.filter(p => p.c.length);
+  disarm();
+  C.E.sel.clear();
+  refreshVector(L);
+  buildInspector(); dirtyTl(); renderLayerList();
+  toast(removedContours
+    ? removedPts + ' points and ' + removedContours + ' whole outlines removed'
+    : removedPts + (removedPts === 1 ? ' point removed' : ' points removed'));
+}
+function setPointCorner(hard){
+  const C = ptCtx();
+  if(!C || !C.E.sel.size){ toast('Pick some points first.', true); return; }
+  arm();
+  for(const k of C.E.sel){
+    const q = ptParse(k);
+    const c = C.L.paths[q.pi] && C.L.paths[q.pi].c[q.ci];
+    if(!c || !c[q.i]) continue;
+    if(hard) c[q.i][2] = 1; else c[q.i].length = 2;
+  }
+  disarm();
+  refreshVector(C.L);
+  buildInspector();
+  toast(hard ? 'Those points are hard corners now' : 'Those points curve through now');
+}
+function selectAllPoints(){
+  const C = ptCtx();
+  if(!C) return;
+  C.E.sel.clear();
+  C.L.paths.forEach((p, pi) => p.c.forEach((c, ci) => c.forEach((_, i) => C.E.sel.add(ptKey(pi, ci, i)))));
+  buildInspector(); dirty();
+}
+function nudgePoints(dx, dy){
+  const C = ptCtx();
+  if(!C || !C.E.sel.size) return false;
+  arm();
+  for(const k of C.E.sel){
+    const q = ptParse(k);
+    const c = C.L.paths[q.pi] && C.L.paths[q.pi].c[q.ci];
+    if(!c || !c[q.i]) continue;
+    c[q.i][0] += dx; c[q.i][1] += dy;
+  }
+  disarm();
+  refreshVector(C.L);
+  buildInspectorValues();
+  return true;
+}
+
+/* ---------------------------------------------------------------- pointers */
+function ptPointerDown(e, pt){
+  const C = ptCtx();
+  if(!C) return;
+  const E = C.E;
+  capturePointer(scroll, e.pointerId);
+
+  if(e.altKey){
+    const seg = segmentAt(pt.x, pt.y);
+    if(seg){ addPointAt(seg); return; }
+  }
+  const hit = pointAt(pt.x, pt.y);
+  if(hit){
+    const k = ptKey(hit.pi, hit.ci, hit.i);
+    if(e.shiftKey){
+      E.sel.has(k) ? E.sel.delete(k) : E.sel.add(k);
+    } else if(!E.sel.has(k)){
+      E.sel.clear(); E.sel.add(k);
+    }
+    if(E.sel.size){
+      arm();
+      const start = C.toVec(pt.x, pt.y);
+      const grabbed = [];
+      for(const key of E.sel){
+        const q = ptParse(key);
+        const c = C.L.paths[q.pi] && C.L.paths[q.pi].c[q.ci];
+        if(c && c[q.i]) grabbed.push({p:c[q.i], x0:c[q.i][0], y0:c[q.i][1]});
+      }
+      E.drag = {start, grabbed};
+    }
+    buildInspector(); dirty();
+    return;
+  }
+  E.marq = {x0:pt.x, y0:pt.y, x1:pt.x, y1:pt.y, add:e.shiftKey, base:new Set(E.sel)};
+  dirty();
+}
+function ptPointerMove(e, pt){
+  const C = ptCtx();
+  if(!C) return;
+  const E = C.E;
+  if(E.drag){
+    const now = C.toVec(pt.x, pt.y);
+    let dx = now.x - E.drag.start.x, dy = now.y - E.drag.start.y;
+    if(e.shiftKey){ if(Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0; }
+    for(const g of E.drag.grabbed){ g.p[0] = g.x0 + dx; g.p[1] = g.y0 + dy; }
+    refreshVector(C.L);
+    buildInspectorValues();
+    return;
+  }
+  if(E.marq){
+    E.marq.x1 = pt.x; E.marq.y1 = pt.y;
+    const x0 = Math.min(E.marq.x0, pt.x), x1 = Math.max(E.marq.x0, pt.x);
+    const y0 = Math.min(E.marq.y0, pt.y), y1 = Math.max(E.marq.y0, pt.y);
+    const found = new Set(E.marq.add ? E.marq.base : []);
+    C.L.paths.forEach((path, pi) => path.c.forEach((c, ci) => c.forEach((p, i) => {
+      const s = C.toScreen(p[0], p[1]);
+      if(s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1) found.add(ptKey(pi, ci, i));
+    })));
+    E.sel = found;
+    dirty();
+  }
+}
+function ptPointerUp(){
+  const E = app.editPts;
+  if(!E) return;
+  if(E.drag){ E.drag = null; disarm(); }
+  if(E.marq){ E.marq = null; }
+  buildInspector(); dirty();
+}
+
+/* -------------------------------------------------------------- inspector */
+function buildPointInspector(){
+  const C = ptCtx();
+  if(!C){ buildInspector(); return; }
+  const {L, E} = C;
+  let total = 0;
+  for(const p of L.paths) for(const c of p.c) total += c.length;
+
+  const s = sec('Editing the outline of ' + L.name);
+  s.appendChild(el('div', 'ks-note',
+    E.sel.size ? E.sel.size + ' of ' + total + ' points selected.'
+               : total + ' points. Drag one to reshape the outline, or drag a box around several.'));
+
+  /* the exact position of a single selected point */
+  if(E.sel.size === 1){
+    const q = ptParse(Array.from(E.sel)[0]);
+    const c = L.paths[q.pi] && L.paths[q.pi].c[q.ci];
+    if(c && c[q.i]){
+      const r = row();
+      r.appendChild(fnum('X', () => c[q.i][0], v => { arm(); c[q.i][0] = v; disarm(); refreshVector(L); }, {dec:1}));
+      r.appendChild(fnum('Y', () => c[q.i][1], v => { arm(); c[q.i][1] = v; disarm(); refreshVector(L); }, {dec:1}));
+      s.appendChild(r);
+    }
+  }
+  const b1 = el('div', 'ks-btnrow');
+  b1.appendChild(btn('Select all', selectAllPoints));
+  b1.appendChild(btn('Select none', () => { E.sel.clear(); buildInspector(); dirty(); }));
+  b1.appendChild(btn('Make corner', () => setPointCorner(true)));
+  b1.appendChild(btn('Make curve', () => setPointCorner(false)));
+  b1.appendChild(btn('Delete points', deleteSelectedPoints));
+  s.appendChild(b1);
+  s.appendChild(el('div', 'ks-note',
+    'Alt-click anywhere on a line to drop a new point in. Square points are hard corners; round ones curve through.'));
+  insp.appendChild(s);
+
+  const s2 = sec('Outlines');
+  const list = el('div');
+  L.paths.forEach((path, pi) => {
+    path.c.forEach((c, ci) => {
+      const row2 = el('div', 'ks-vrow');
+      const sw = el('span', 'chip');
+      sw.style.background = path.fill;
+      row2.appendChild(sw);
+      row2.appendChild(el('span', 'nm', 'Outline ' + (pi+1) + '.' + (ci+1) + ' — ' + c.length + ' points'));
+      const pick = el('button', 'ks-btn icon', '◎');
+      pick.title = 'Select every point on this outline';
+      pick.addEventListener('click', () => {
+        E.sel.clear();
+        c.forEach((_, i) => E.sel.add(ptKey(pi, ci, i)));
+        buildInspector(); dirty();
+      });
+      row2.appendChild(pick);
+      list.appendChild(row2);
+    });
+  });
+  s2.appendChild(list);
+  insp.appendChild(s2);
+
+  const s3 = sec('');
+  const done = btn('Done editing points', exitPoints, 'primary');
+  done.style.width = '100%';
+  done.style.justifyContent = 'center';
+  s3.appendChild(done);
+  insp.appendChild(s3);
 }
 /* ==========================================================================
    IMAGE LIBRARY
@@ -4764,6 +6144,18 @@ document.addEventListener('keydown', e => {
     if(e.key === 'Enter'){ e.preventDefault(); applyCrop(); return; }
     if(e.key === 'Escape'){ e.preventDefault(); cancelCrop(); return; }
   }
+  /* while editing points, the shortcuts belong to the points */
+  if(app.editPts){
+    if(e.key === 'Escape' || e.key === 'Enter'){ e.preventDefault(); exitPoints(); return; }
+    if(e.key === 'Delete' || e.key === 'Backspace'){ e.preventDefault(); deleteSelectedPoints(); return; }
+    if(meta && e.key.toLowerCase() === 'a'){ e.preventDefault(); selectAllPoints(); return; }
+    if(/^Arrow/.test(e.key)){
+      const d = e.shiftKey ? 5 : 1;
+      const dx = e.key === 'ArrowLeft' ? -d : e.key === 'ArrowRight' ? d : 0;
+      const dy = e.key === 'ArrowUp' ? -d : e.key === 'ArrowDown' ? d : 0;
+      if(nudgePoints(dx, dy)){ e.preventDefault(); return; }
+    }
+  }
 
   switch(e.key){
     case ' ':      e.preventDefault(); setPlaying(!app.playing); return;
@@ -4775,6 +6167,7 @@ document.addEventListener('keydown', e => {
     case 'Backspace': e.preventDefault(); deleteSelection(); return;
     case 'Escape':
       if(app.cropping) cancelCrop();
+      else if(app.editPts) exitPoints();
       else if(app.editing) endTextEdit();
       else select([]);
       return;
@@ -4872,7 +6265,13 @@ window.__studio = {doc, app, assets, findLayer, eff, setProps, addKey, delKey,
   reorder, allLayers, snapshot: () => JSON.parse(snapshot()),
   sounds, loadSound, makeSound, soundLayers, clipLen, clipFrames, scheduleAudio,
   stopAudio, audioReady, svgDoc, shapeD, layerSvg, deliver, reportFail,
-  copyLayers, pasteLayers, saveProject, openProject, ctx2d};
+  copyLayers, pasteLayers, saveProject, openProject, ctx2d,
+  enterPoints, exitPoints, ptCtx, pointAt, segmentAt, addPointAt, ptKey,
+  deleteSelectedPoints, setPointCorner, selectAllPoints, nudgePoints,
+  traceToPaths, sampleFromLayer, makeVector, traceMask, rdp, rdpClosed, shoelace,
+  contoursD, emitContours, pathsLength, vectorHit, textLayout, revealedLines,
+  reverseKeys, shiftKeys, retimeKeys, clearKeys, keySpan, presetFits,
+  PRESET_GROUPS, animatable};
 
 })();
 </script>
