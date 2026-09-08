@@ -21,7 +21,14 @@
       }
       .calc-sub {
         color: var(--ink-soft);
-        margin-bottom: 1.4em;
+        margin-bottom: 1em;
+      }
+      .trip-field {
+        max-width: 360px;
+        margin: 0 auto 1.6em;
+      }
+      .trip-field label.fld {
+        text-align: center;
       }
       .panel {
         padding: 18px 20px;
@@ -33,9 +40,15 @@
         padding-bottom: 6px;
         margin-bottom: 12px;
       }
+      .panel h3.sub-head {
+        font-size: 1rem;
+        margin: 18px 0 8px;
+        color: var(--ink-soft);
+      }
 
       input[type="text"],
-      input[type="number"] {
+      input[type="number"],
+      input[type="date"] {
         font-family: var(--font-body);
         font-size: 1rem;
         color: var(--ink);
@@ -44,6 +57,12 @@
         border-radius: 10px;
         padding: 0.5em 0.8em;
         width: 100%;
+      }
+      input[type="date"] {
+        color-scheme: dark;
+      }
+      html[data-theme="parchment"] input[type="date"] {
+        color-scheme: light;
       }
       input:focus {
         outline: 2px solid var(--gold);
@@ -56,6 +75,12 @@
         text-transform: uppercase;
         letter-spacing: 1px;
         margin: 10px 0 4px;
+      }
+      label.fld .opt {
+        text-transform: none;
+        font-weight: 400;
+        letter-spacing: 0;
+        opacity: 0.75;
       }
 
       .people-row {
@@ -73,11 +98,37 @@
         margin-top: 12px;
       }
       .pchip {
-        padding: 4px 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px 4px 14px;
         border: 1px solid var(--line);
         border-radius: 20px;
         background: var(--paper-dark);
         font-weight: 600;
+      }
+      .pchip .nm {
+        outline: none;
+      }
+      .pchip .nm[contenteditable="true"] {
+        background: var(--paper);
+        border-radius: 6px;
+        padding: 0 4px;
+        min-width: 3ch;
+      }
+      .pchip button {
+        width: 22px;
+        height: 22px;
+        line-height: 1;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0.85rem;
+        background: transparent;
+        border: 1px solid transparent;
+      }
+      .pchip button:hover {
+        background: var(--btn-hover);
+        border-color: var(--line);
       }
 
       .who-grid {
@@ -108,6 +159,65 @@
         color: #fff;
       }
 
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-top: 4px;
+      }
+      .seg button {
+        padding: 6px 14px;
+        background: var(--paper);
+        border: 0;
+        border-right: 1px solid var(--line);
+        font-weight: 600;
+        font-size: 0.86rem;
+        color: var(--ink-soft);
+      }
+      .seg button:last-child {
+        border-right: 0;
+      }
+      .seg button.on {
+        background: var(--blue);
+        color: #fff;
+      }
+
+      .split-rows {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .split-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--paper-dark);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 6px 10px;
+      }
+      .split-row .nm {
+        flex: 1;
+        font-weight: 600;
+      }
+      .split-row input {
+        width: 110px;
+      }
+      .split-hint {
+        font-size: 0.82rem;
+        margin-top: 4px;
+        font-weight: 600;
+        min-height: 1.1em;
+      }
+      .split-hint.ok {
+        color: var(--green);
+      }
+      .split-hint.bad {
+        color: var(--red);
+      }
+
       select {
         font-family: var(--font-body);
         font-size: 1rem;
@@ -125,7 +235,7 @@
         flex-wrap: wrap;
       }
       .exp-form-row > div {
-        flex: 1 1 180px;
+        flex: 1 1 160px;
       }
 
       .exp-item {
@@ -145,6 +255,16 @@
         color: var(--red);
         font-size: 1.05rem;
         min-width: 84px;
+      }
+      .exp-item .date-badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--ink-soft);
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 2px 7px;
+        white-space: nowrap;
       }
       .exp-item .desc {
         flex: 1 1 200px;
@@ -204,6 +324,7 @@
         border-radius: 10px;
         background: var(--paper-dark);
         font-size: 1.05rem;
+        flex-wrap: wrap;
       }
       .settle-line .arrow {
         color: var(--gold);
@@ -215,11 +336,52 @@
         margin-left: auto;
         font-size: 1.15rem;
       }
+      .settle-line .mark-paid {
+        font-size: 0.8rem;
+        padding: 0.3em 0.7em;
+      }
       .all-square {
         text-align: center;
         color: var(--green);
         font-weight: 700;
         padding: 8px;
+      }
+      .pay-hist {
+        margin-top: 6px;
+      }
+      .pay-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        margin: 6px 0;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: var(--ink-soft);
+      }
+      .pay-row b {
+        color: var(--ink);
+      }
+      .pay-row .date-badge {
+        font-size: 0.7rem;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 1px 6px;
+      }
+      .pay-row .undo {
+        margin-left: auto;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        padding: 0;
+        line-height: 1;
+      }
+      .custom-pay {
+        margin-top: 14px;
+      }
+      .custom-pay .exp-form-row > div {
+        flex: 1 1 140px;
       }
       .muted {
         color: var(--ink-soft);
@@ -241,6 +403,15 @@
         min-height: 1.2em;
         margin-top: 4px;
       }
+      .export-btns {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .export-btns button {
+        min-width: 168px;
+      }
       @media (max-width: 760px) {
         .calc-head h1 {
           font-size: 1.5rem;
@@ -251,6 +422,7 @@
         /* 16px stops iOS from auto-zooming into inputs */
         input[type="text"],
         input[type="number"],
+        input[type="date"],
         select {
           font-size: 16px;
         }
@@ -277,7 +449,10 @@
         }
         .settle-line {
           font-size: 0.95rem;
-          flex-wrap: wrap;
+        }
+        .export-btns button {
+          flex: 1 1 100%;
+          min-height: 44px;
         }
       }
     </style>
@@ -296,6 +471,13 @@
           </div>
         </div>
 
+        <div class="trip-field">
+          <label class="fld" for="inp-trip"
+            >Trip name <span class="opt">(optional)</span></label
+          >
+          <input type="text" id="inp-trip" placeholder="e.g. Goa, March 2026" />
+        </div>
+
         <!-- STEP 1: PEOPLE -->
         <div class="panel sketch" id="panel-people">
           <h2>1 &middot; Who went on the trip?</h2>
@@ -303,7 +485,7 @@
             <input
               type="text"
               id="inp-names"
-              placeholder="names, comma or space separated &mdash; e.g. Sarvesh, Phoenix Chinmay Vihaan"
+              placeholder="names, comma separated &mdash; e.g. Sarvesh, Phoenix, Uncle Ravi"
             />
             <button id="btn-add-people">Add</button>
           </div>
@@ -337,9 +519,27 @@
                 placeholder="food, hotel, petrol..."
               />
             </div>
+            <div>
+              <label class="fld"
+                >Date <span class="opt">(optional)</span></label
+              >
+              <input type="date" id="inp-date" />
+            </div>
           </div>
           <label class="fld">For whom?</label>
           <div class="who-grid" id="who-grid"></div>
+
+          <label class="fld"
+            >Split <span class="opt">(how to divide it)</span></label
+          >
+          <div class="seg" id="split-mode">
+            <button type="button" class="on" data-mode="equal">Equally</button>
+            <button type="button" data-mode="exact">Exact amounts</button>
+            <button type="button" data-mode="shares">By shares</button>
+          </div>
+          <div class="split-rows hidden" id="split-rows"></div>
+          <div class="split-hint" id="split-hint"></div>
+
           <div class="err" id="err-exp"></div>
           <div class="mt center">
             <button id="btn-add-exp">Add Expense</button>
@@ -368,13 +568,61 @@
             </thead>
             <tbody id="bal-body"></tbody>
           </table>
-          <h3 class="muted">Simplified payments</h3>
+
+          <h3 class="sub-head">Simplified payments</h3>
           <div id="settle-list"></div>
+
+          <div id="pay-hist-wrap" class="hidden">
+            <h3 class="sub-head">Payments recorded</h3>
+            <div class="pay-hist" id="pay-hist"></div>
+          </div>
+
+          <div class="custom-pay">
+            <h3 class="sub-head">Record a payment</h3>
+            <div class="exp-form-row">
+              <div>
+                <label class="fld">From</label>
+                <select id="sel-pay-from"></select>
+              </div>
+              <div>
+                <label class="fld">To</label>
+                <select id="sel-pay-to"></select>
+              </div>
+              <div>
+                <label class="fld">Amount (&#8377;)</label>
+                <input type="number" id="inp-pay-amount" min="0" step="0.01" />
+              </div>
+              <div>
+                <label class="fld"
+                  >Date <span class="opt">(optional)</span></label
+                >
+                <input type="date" id="inp-pay-date" />
+              </div>
+            </div>
+            <div class="err" id="err-payment"></div>
+            <div class="center mt">
+              <button id="btn-record-payment">Record payment</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: EXPORT -->
+        <div class="panel sketch alt hidden" id="panel-export">
+          <h2>4 &middot; Save a copy</h2>
+          <div class="export-btns">
+            <button id="btn-xlsx">Download Excel</button>
+            <button id="btn-pdf">Download PDF</button>
+          </div>
+          <div class="err" id="err-export"></div>
+          <div class="muted center">
+            Both files include every expense, the balances table, who pays whom,
+            and any payments you've recorded.
+          </div>
         </div>
 
         <footer>
-          shares are split equally among the chosen people &middot; payments
-          minimised so there's no back &amp; forth.
+          shares are split equally unless you choose exact amounts or shares
+          &middot; payments minimised so there's no back &amp; forth.
         </footer>
       </div>
     </div>
@@ -388,9 +636,32 @@
             minimumFractionDigits: p % 100 ? 2 : 0,
             maximumFractionDigits: 2,
           });
+        // Names and descriptions are user text and end up inside innerHTML,
+        // so they must be escaped or a name like <img onerror> executes.
+        const esc = (v) =>
+          String(v)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        // Capitalise only the first letter so multi-word and hyphenated
+        // names ("Uncle Ravi", "Bartholomew-Fitzgerald") aren't mangled.
+        const titleFirst = (s) =>
+          s.length ? s[0].toUpperCase() + s.slice(1) : s;
+        const cleanName = (s) => titleFirst(s.replace(/\s+/g, " ").trim());
+        const dateBadge = (iso) =>
+          iso
+            ? new Date(iso + "T00:00:00").toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+              })
+            : "";
+        const todayISO = () => new Date().toISOString().slice(0, 10);
 
         let people = []; // names
-        let expenses = []; // {payer, paise, desc, forWhom:[names]}
+        let expenses = []; // {payer,paise,desc,date,forWhom,mode,splits,shareInputs?}
+        let payments = []; // {from,to,paise,date}
         let editIdx = -1; // index of expense being edited, -1 = adding new
 
         // ---------- persistence ----------
@@ -398,7 +669,12 @@
           try {
             localStorage.setItem(
               "tripcalc",
-              JSON.stringify({ people, expenses }),
+              JSON.stringify({
+                people,
+                expenses,
+                payments,
+                trip: $("inp-trip").value,
+              }),
             );
           } catch (e) {}
         }
@@ -408,6 +684,21 @@
             if (d && Array.isArray(d.people)) {
               people = d.people;
               expenses = d.expenses || [];
+              payments = d.payments || [];
+              if (d.trip) $("inp-trip").value = d.trip;
+              // migrate expenses saved before splits/date/mode existed
+              for (const e of expenses) {
+                if (!e.mode) e.mode = "equal";
+                if (e.date === undefined) e.date = null;
+                if (!e.splits) {
+                  const base = Math.floor(e.paise / e.forWhom.length);
+                  let rem = e.paise - base * e.forWhom.length;
+                  e.splits = {};
+                  e.forWhom.forEach((w) => {
+                    e.splits[w] = base + (rem-- > 0 ? 1 : 0);
+                  });
+                }
+              }
             }
           } catch (e) {}
         }
@@ -419,10 +710,7 @@
             $("err-names").textContent = "Type at least one name.";
             return;
           }
-          const names = raw
-            .split(/[\s,]+/)
-            .filter(Boolean)
-            .map((n) => n[0].toUpperCase() + n.slice(1).toLowerCase());
+          const names = raw.split(",").map(cleanName).filter(Boolean);
           let added = 0;
           for (const n of names) {
             if (!people.some((p) => p.toLowerCase() === n.toLowerCase())) {
@@ -437,6 +725,55 @@
           save();
           render();
         }
+        function usageOf(name) {
+          let n = 0;
+          for (const e of expenses)
+            if (e.payer === name || name in e.splits) n++;
+          for (const p of payments) if (p.from === name || p.to === name) n++;
+          return n;
+        }
+        function removePerson(name) {
+          const n = usageOf(name);
+          if (n > 0) {
+            $("err-names").textContent =
+              `${name} is used in ${n} expense${n > 1 ? "s" : ""}/payment${n > 1 ? "s" : ""} — remove ` +
+              `those first.`;
+            return;
+          }
+          people = people.filter((p) => p !== name);
+          save();
+          render();
+        }
+        function renamePerson(oldName, rawNew) {
+          const n = cleanName(rawNew);
+          if (!n) return false;
+          if (
+            n.toLowerCase() !== oldName.toLowerCase() &&
+            people.some((p) => p.toLowerCase() === n.toLowerCase())
+          ) {
+            $("err-names").textContent = `${n} is already a traveller.`;
+            return false;
+          }
+          people = people.map((p) => (p === oldName ? n : p));
+          for (const e of expenses) {
+            if (e.payer === oldName) e.payer = n;
+            e.forWhom = e.forWhom.map((w) => (w === oldName ? n : w));
+            if (oldName in e.splits) {
+              e.splits[n] = e.splits[oldName];
+              delete e.splits[oldName];
+            }
+            if (e.shareInputs && oldName in e.shareInputs) {
+              e.shareInputs[n] = e.shareInputs[oldName];
+              delete e.shareInputs[oldName];
+            }
+          }
+          for (const p of payments) {
+            if (p.from === oldName) p.from = n;
+            if (p.to === oldName) p.to = n;
+          }
+          save();
+          return true;
+        }
 
         // ---------- expenses ----------
         function selectedWhom() {
@@ -444,11 +781,111 @@
             (el) => el.dataset.name,
           );
         }
+        function currentMode() {
+          const b = document.querySelector("#split-mode button.on");
+          return b ? b.dataset.mode : "equal";
+        }
+        // even split with the remainder spread over the first few names,
+        // so totals always add back up to the exact paise amount
+        function equalSplit(paise, names) {
+          const base = Math.floor(paise / names.length);
+          let rem = paise - base * names.length;
+          const out = {};
+          names.forEach((w) => {
+            out[w] = base + (rem-- > 0 ? 1 : 0);
+          });
+          return out;
+        }
+        // largest-remainder method so shares distribute fairly and the
+        // total still lands on the exact paise amount
+        function shareSplit(paise, shareMap) {
+          const names = Object.keys(shareMap);
+          const totalShares = names.reduce((s, n) => s + shareMap[n], 0);
+          if (totalShares <= 0) return null;
+          const raw = names.map((n) => (paise * shareMap[n]) / totalShares);
+          const floors = raw.map(Math.floor);
+          let used = floors.reduce((a, b) => a + b, 0);
+          let left = paise - used;
+          const order = names
+            .map((n, i) => ({ n, i, rem: raw[i] - floors[i] }))
+            .sort((a, b) => b.rem - a.rem || a.i - b.i);
+          const out = {};
+          names.forEach((n, i) => (out[n] = floors[i]));
+          for (let k = 0; k < order.length && left > 0; k++, left--)
+            out[order[k].n]++;
+          return out;
+        }
+        function renderSplitRows(prefill) {
+          const mode = currentMode();
+          const whom = selectedWhom();
+          const wrap = $("split-rows");
+          const hint = $("split-hint");
+          if (mode === "equal" || whom.length === 0) {
+            wrap.classList.add("hidden");
+            wrap.innerHTML = "";
+            hint.textContent = "";
+            hint.className = "split-hint";
+            return;
+          }
+          wrap.classList.remove("hidden");
+          const amt = parseFloat($("inp-amount").value);
+          const paise = amt > 0 ? Math.round(amt * 100) : 0;
+          let defaults = {};
+          if (prefill) defaults = prefill;
+          else if (mode === "exact")
+            defaults = paise
+              ? Object.fromEntries(
+                  Object.entries(equalSplit(paise, whom)).map(([k, v]) => [
+                    k,
+                    (v / 100).toFixed(2),
+                  ]),
+                )
+              : {};
+          else defaults = Object.fromEntries(whom.map((w) => [w, "1"]));
+          wrap.innerHTML = whom
+            .map(
+              (w) =>
+                `<div class="split-row"><span class="nm">${esc(w)}</span>
+        <input type="number" min="0" step="${mode === "exact" ? "0.01" : "1"}"
+          class="split-input" data-name="${esc(w)}" value="${esc(defaults[w] ?? "")}"></div>`,
+            )
+            .join("");
+          wrap
+            .querySelectorAll(".split-input")
+            .forEach((el) => el.addEventListener("input", updateSplitHint));
+          updateSplitHint();
+        }
+        function updateSplitHint() {
+          const mode = currentMode();
+          const hint = $("split-hint");
+          if (mode !== "exact") {
+            if (mode === "shares") {
+              hint.className = "split-hint";
+              hint.textContent =
+                "Shares don't need to add up to anything — just relative weight.";
+            }
+            return;
+          }
+          const amt = parseFloat($("inp-amount").value);
+          const target = amt > 0 ? Math.round(amt * 100) : 0;
+          let sum = 0;
+          document
+            .querySelectorAll(".split-input")
+            .forEach(
+              (el) => (sum += Math.round((parseFloat(el.value) || 0) * 100)),
+            );
+          const ok = target > 0 && sum === target;
+          hint.className = "split-hint " + (ok ? "ok" : "bad");
+          hint.textContent =
+            `Entered ${rup(sum)} of ${rup(target)}` + (ok ? " ✓" : "");
+        }
         function addExpense() {
           const payer = $("sel-payer").value;
           const amt = parseFloat($("inp-amount").value);
           const desc = $("inp-desc").value.trim() || "expense";
+          const date = $("inp-date").value || null;
           const whom = selectedWhom();
+          const mode = currentMode();
           if (!payer || !(amt > 0)) {
             $("err-exp").textContent = "Enter a valid amount.";
             return;
@@ -457,13 +894,44 @@
             $("err-exp").textContent = "Pick at least one person it was for.";
             return;
           }
+          const paise = Math.round(amt * 100);
+          let splits, shareInputs;
+          if (mode === "equal") {
+            splits = equalSplit(paise, whom);
+          } else if (mode === "exact") {
+            splits = {};
+            let sum = 0;
+            whom.forEach((w) => {
+              const el = document.querySelector(
+                `.split-input[data-name="${CSS.escape(w)}"]`,
+              );
+              const v = Math.round((parseFloat(el && el.value) || 0) * 100);
+              splits[w] = v;
+              sum += v;
+            });
+            if (sum !== paise) {
+              $("err-exp").textContent =
+                `Those amounts add up to ${rup(sum)}, not ${rup(paise)}. Adjust them to match.`;
+              return;
+            }
+          } else {
+            shareInputs = {};
+            whom.forEach((w) => {
+              const el = document.querySelector(
+                `.split-input[data-name="${CSS.escape(w)}"]`,
+              );
+              shareInputs[w] = Math.max(0, parseFloat(el && el.value) || 0);
+            });
+            splits = shareSplit(paise, shareInputs);
+            if (!splits) {
+              $("err-exp").textContent =
+                "Enter at least one share greater than 0.";
+              return;
+            }
+          }
           $("err-exp").textContent = "";
-          const exp = {
-            payer,
-            paise: Math.round(amt * 100),
-            desc,
-            forWhom: whom,
-          };
+          const exp = { payer, paise, desc, date, forWhom: whom, mode, splits };
+          if (shareInputs) exp.shareInputs = shareInputs;
           if (editIdx >= 0) {
             expenses[editIdx] = exp;
           } else {
@@ -483,10 +951,11 @@
         function editExpense(i) {
           editIdx = i;
           const e = expenses[i];
-          render(); // rebuild chips first, then fill the form
+          render(); // rebuild chips/who-grid first, then fill the form
           $("sel-payer").value = e.payer;
           $("inp-amount").value = e.paise / 100;
           $("inp-desc").value = e.desc;
+          $("inp-date").value = e.date || "";
           document
             .querySelectorAll("#who-grid .who.person")
             .forEach((el) =>
@@ -496,21 +965,57 @@
             ...document.querySelectorAll("#who-grid .who.person"),
           ].every((el) => el.classList.contains("on"));
           $("who-all").classList.toggle("on", allOn);
+          document
+            .querySelectorAll("#split-mode button")
+            .forEach((b) =>
+              b.classList.toggle("on", b.dataset.mode === e.mode),
+            );
+          if (e.mode === "exact") {
+            const pf = {};
+            e.forWhom.forEach((w) => (pf[w] = (e.splits[w] / 100).toFixed(2)));
+            renderSplitRows(pf);
+          } else if (e.mode === "shares") {
+            const pf = {};
+            e.forWhom.forEach(
+              (w) => (pf[w] = String((e.shareInputs && e.shareInputs[w]) ?? 1)),
+            );
+            renderSplitRows(pf);
+          } else {
+            renderSplitRows();
+          }
           $("btn-add-exp").textContent = "Save Changes";
           $("btn-cancel-edit").classList.remove("hidden");
-          $("panel-expense").scrollIntoView({ behavior: "smooth" });
+          if ($("panel-expense").scrollIntoView)
+            $("panel-expense").scrollIntoView({ behavior: "smooth" });
         }
         function stopEdit() {
           editIdx = -1;
           $("inp-amount").value = "";
           $("inp-desc").value = "";
+          $("inp-date").value = "";
+          document
+            .querySelectorAll("#split-mode button")
+            .forEach((b) =>
+              b.classList.toggle("on", b.dataset.mode === "equal"),
+            );
           $("btn-add-exp").textContent = "Add Expense";
           $("btn-cancel-edit").classList.add("hidden");
         }
 
+        // ---------- payments (settling up outside the app) ----------
+        function recordPayment(from, to, paise, date) {
+          payments.push({ from, to, paise, date: date || null });
+          save();
+          render();
+        }
+        function undoPayment(i) {
+          payments.splice(i, 1);
+          save();
+          render();
+        }
+
         // ---------- math ----------
-        // per person: paid, share (both in paise). Share of one expense = paise/n,
-        // remainder paise spread over the first few beneficiaries so totals always match.
+        // per person: paid, share (both in paise), from the expense ledger alone.
         function computeBalances() {
           const paid = {},
             share = {};
@@ -519,24 +1024,28 @@
             share[p] = 0;
           });
           for (const e of expenses) {
-            if (!(e.payer in paid)) continue;
-            paid[e.payer] += e.paise;
-            const ben = e.forWhom.filter((w) => w in share);
-            const base = Math.floor(e.paise / ben.length);
-            let rem = e.paise - base * ben.length;
-            ben.forEach((w) => {
-              share[w] += base + (rem-- > 0 ? 1 : 0);
-            });
+            if (e.payer in paid) paid[e.payer] += e.paise;
+            for (const w in e.splits) if (w in share) share[w] += e.splits[w];
           }
           return { paid, share };
+        }
+        // net after folding in payments people have already made to each other —
+        // this is what still needs settling, separate from the pure expense ledger.
+        function adjustedNet(net) {
+          const out = { ...net };
+          for (const p of payments) {
+            if (p.from in out) out[p.from] += p.paise;
+            if (p.to in out) out[p.to] -= p.paise;
+          }
+          return out;
         }
         // greedy settlement: biggest debtor pays biggest creditor
         function settle(net) {
           const debtors = [],
             creditors = [];
           for (const p of people) {
-            if (net[p] < 0) debtors.push({ p, v: -net[p] });
-            else if (net[p] > 0) creditors.push({ p, v: net[p] });
+            if (net[p] < -0.5) debtors.push({ p, v: -net[p] });
+            else if (net[p] > 0.5) creditors.push({ p, v: net[p] });
           }
           debtors.sort((a, b) => b.v - a.v);
           creditors.sort((a, b) => b.v - a.v);
@@ -546,38 +1055,96 @@
           while (i < debtors.length && j < creditors.length) {
             const pay = Math.min(debtors[i].v, creditors[j].v);
             if (pay > 0)
-              out.push({ from: debtors[i].p, to: creditors[j].p, paise: pay });
+              out.push({
+                from: debtors[i].p,
+                to: creditors[j].p,
+                paise: Math.round(pay),
+              });
             debtors[i].v -= pay;
             creditors[j].v -= pay;
-            if (debtors[i].v === 0) i++;
-            if (creditors[j].v === 0) j++;
+            if (debtors[i].v < 0.5) i++;
+            if (creditors[j].v < 0.5) j++;
           }
           return out;
+        }
+        function splitBreakdown(e) {
+          if (e.mode === "equal")
+            return `${rup(Math.floor(e.paise / e.forWhom.length))} each (${e.forWhom.length} ${e.forWhom.length > 1 ? "people" : "person"})`;
+          return e.forWhom
+            .map((w) => `${esc(w)} ${rup(e.splits[w])}`)
+            .join(" &middot; ");
         }
 
         // ---------- render ----------
         function render() {
-          // chips
+          // chips: editable name + remove
           $("chips-people").innerHTML = people
-            .map((p) => `<span class="pchip">${p}</span>`)
+            .map(
+              (p) =>
+                `<span class="pchip" data-name="${esc(p)}">
+          <span class="nm">${esc(p)}</span>
+          <button data-act="edit" title="Rename">&#9998;</button>
+          <button data-act="del" title="Remove">&times;</button>
+        </span>`,
+            )
             .join("");
+          document
+            .querySelectorAll("#chips-people [data-act='del']")
+            .forEach((b) => {
+              b.onclick = () => removePerson(b.closest(".pchip").dataset.name);
+            });
+          document
+            .querySelectorAll("#chips-people [data-act='edit']")
+            .forEach((b) => {
+              b.onclick = () => {
+                const chip = b.closest(".pchip");
+                const oldName = chip.dataset.name;
+                const nmEl = chip.querySelector(".nm");
+                nmEl.contentEditable = "true";
+                nmEl.focus();
+                document.getSelection().selectAllChildren(nmEl);
+                const commit = () => {
+                  nmEl.contentEditable = "false";
+                  const ok = renamePerson(oldName, nmEl.textContent);
+                  if (!ok) render();
+                  else {
+                    save();
+                    render();
+                  }
+                };
+                nmEl.addEventListener("blur", commit, { once: true });
+                nmEl.addEventListener("keydown", (ev) => {
+                  ev.stopPropagation();
+                  if (ev.key === "Enter") {
+                    ev.preventDefault();
+                    nmEl.blur();
+                  }
+                  if (ev.key === "Escape") {
+                    nmEl.textContent = oldName;
+                    nmEl.blur();
+                  }
+                });
+              };
+            });
+
           const hasPeople = people.length >= 2;
           $("panel-expense").classList.toggle("hidden", !hasPeople);
           $("panel-list").classList.toggle("hidden", expenses.length === 0);
           $("panel-result").classList.toggle("hidden", expenses.length === 0);
+          $("panel-export").classList.toggle("hidden", expenses.length === 0);
           if (people.length === 1)
             $("err-names").textContent = "Add at least one more traveller.";
 
           // payer select + who chips (default all on)
           $("sel-payer").innerHTML = people
-            .map((p) => `<option>${p}</option>`)
+            .map((p) => `<option value="${esc(p)}">${esc(p)}</option>`)
             .join("");
           $("who-grid").innerHTML =
             `<span class="who all on" id="who-all">Everyone</span>` +
             people
               .map(
                 (p) =>
-                  `<span class="who person on" data-name="${p}">${p}</span>`,
+                  `<span class="who person on" data-name="${esc(p)}">${esc(p)}</span>`,
               )
               .join("");
           $("who-all").onclick = function () {
@@ -586,6 +1153,7 @@
             document
               .querySelectorAll("#who-grid .who.person")
               .forEach((el) => el.classList.toggle("on", on));
+            renderSplitRows();
           };
           document.querySelectorAll("#who-grid .who.person").forEach((el) => {
             el.onclick = () => {
@@ -594,21 +1162,30 @@
                 ...document.querySelectorAll("#who-grid .who.person"),
               ].every((e) => e.classList.contains("on"));
               $("who-all").classList.toggle("on", allOn);
+              renderSplitRows();
             };
           });
+
+          // payment from/to selects
+          $("sel-pay-from").innerHTML = people
+            .map((p) => `<option value="${esc(p)}">${esc(p)}</option>`)
+            .join("");
+          $("sel-pay-to").innerHTML = people
+            .map((p) => `<option value="${esc(p)}">${esc(p)}</option>`)
+            .join("");
 
           // expense list
           let tot = 0;
           $("exp-list").innerHTML = expenses
             .map((e, i) => {
               tot += e.paise;
-              const each = Math.floor(e.paise / e.forWhom.length);
               return `<div class="exp-item${i === editIdx ? " editing" : ""}">
         <span class="amt">${rup(e.paise)}</span>
-        <span class="desc"><b>${e.payer}</b> paid for ${e.desc} &mdash; for ${e.forWhom.join(", ")}</span>
+        ${e.date ? `<span class="date-badge">${esc(dateBadge(e.date))}</span>` : ""}
+        <span class="desc"><b>${esc(e.payer)}</b> paid for ${esc(e.desc)} &mdash; for ${esc(e.forWhom.join(", "))}</span>
         <button data-edit="${i}" title="Edit">&#9998;</button>
         <button data-del="${i}" title="Delete">&times;</button>
-        <span class="share">${rup(each)} each (${e.forWhom.length} ${e.forWhom.length > 1 ? "people" : "person"})</span>
+        <span class="share">${splitBreakdown(e)}</span>
       </div>`;
             })
             .join("");
@@ -631,20 +1208,865 @@
                 net[p] = paid[p] - share[p];
                 const cls = net[p] > 0 ? "pos" : net[p] < 0 ? "neg" : "";
                 const sign = net[p] > 0 ? "gets " : net[p] < 0 ? "owes " : "";
-                return `<tr><td>${p}</td><td>${rup(paid[p])}</td><td>${rup(share[p])}</td>
+                return `<tr><td>${esc(p)}</td><td>${rup(paid[p])}</td><td>${rup(share[p])}</td>
           <td class="${cls}">${sign}${rup(Math.abs(net[p]))}</td></tr>`;
               })
               .join("");
-            const tx = settle(net);
+            const adj = adjustedNet(net);
+            const tx = settle(adj);
             $("settle-list").innerHTML = tx.length
               ? tx
                   .map(
-                    (t) => `<div class="settle-line"><b>${t.from}</b>
-            <span class="arrow">pays &rarr;</span> <b>${t.to}</b>
+                    (t, i) => `<div class="settle-line"><b>${esc(t.from)}</b>
+            <span class="arrow">pays &rarr;</span> <b>${esc(t.to)}</b>
+            <button class="mark-paid" data-mp="${i}">Mark as paid</button>
             <b class="rupee">${rup(t.paise)}</b></div>`,
                   )
                   .join("")
               : `<div class="all-square">All square &mdash; nobody owes anything!</div>`;
+            document.querySelectorAll("#settle-list [data-mp]").forEach((b) => {
+              const t = tx[+b.dataset.mp];
+              b.onclick = () =>
+                recordPayment(t.from, t.to, t.paise, todayISO());
+            });
+          } else {
+            $("settle-list").innerHTML = "";
+          }
+
+          // payment history
+          $("pay-hist-wrap").classList.toggle("hidden", payments.length === 0);
+          $("pay-hist").innerHTML = payments
+            .map(
+              (p, i) => `<div class="pay-row">
+        <b>${esc(p.from)}</b> paid <b>${esc(p.to)}</b> ${rup(p.paise)}
+        ${p.date ? `<span class="date-badge">${esc(dateBadge(p.date))}</span>` : ""}
+        <button class="undo" data-undo="${i}" title="Undo this record">&times;</button>
+      </div>`,
+            )
+            .join("");
+          document.querySelectorAll("#pay-hist [data-undo]").forEach((b) => {
+            b.onclick = () => undoPayment(+b.dataset.undo);
+          });
+        }
+
+        // ================= export =================
+        // Both writers are hand-rolled so the page keeps working offline and
+        // nothing here depends on a CDN staying up.
+
+        const escX = (s) =>
+          String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&apos;");
+
+        function tripName() {
+          return ($("inp-trip").value || "").trim() || "Trip";
+        }
+        function fileStem() {
+          return (
+            tripName()
+              .replace(/[^\w\s-]/g, "")
+              .trim()
+              .replace(/\s+/g, "-")
+              .toLowerCase() || "trip"
+          );
+        }
+        function todayLabel() {
+          return new Date().toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          });
+        }
+        function download(blob, name) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 4000);
+        }
+        // Everything the report needs, gathered once.
+        function reportData() {
+          const { paid, share } = computeBalances();
+          const net = {};
+          people.forEach((p) => (net[p] = paid[p] - share[p]));
+          const total = expenses.reduce((s, e) => s + e.paise, 0);
+          const adj = adjustedNet(net);
+          return {
+            paid,
+            share,
+            net,
+            adj,
+            total,
+            tx: settle(adj),
+            payments,
+            perHead: people.length ? Math.round(total / people.length) : 0,
+          };
+        }
+
+        // ---------- ZIP (store only; xlsx parts are small) ----------
+        const CRC_TABLE = (() => {
+          const t = new Uint32Array(256);
+          for (let n = 0; n < 256; n++) {
+            let c = n;
+            for (let k = 0; k < 8; k++)
+              c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+            t[n] = c >>> 0;
+          }
+          return t;
+        })();
+        function crc32(buf) {
+          let c = 0xffffffff;
+          for (let i = 0; i < buf.length; i++)
+            c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+          return (c ^ 0xffffffff) >>> 0;
+        }
+        function zipStore(files) {
+          const enc = new TextEncoder();
+          const parts = [];
+          const central = [];
+          let offset = 0;
+          const d = new Date();
+          const dosTime =
+            (d.getHours() << 11) |
+            (d.getMinutes() << 5) |
+            (d.getSeconds() >> 1);
+          const dosDate =
+            ((d.getFullYear() - 1980) << 9) |
+            ((d.getMonth() + 1) << 5) |
+            d.getDate();
+
+          const u32 = (v) => [
+            v & 255,
+            (v >> 8) & 255,
+            (v >> 16) & 255,
+            (v >>> 24) & 255,
+          ];
+          const u16 = (v) => [v & 255, (v >> 8) & 255];
+
+          for (const f of files) {
+            const nameB = enc.encode(f.name);
+            const dataB = enc.encode(f.data);
+            const crc = crc32(dataB);
+            const local = [
+              ...u32(0x04034b50),
+              ...u16(20),
+              ...u16(0),
+              ...u16(0),
+              ...u16(dosTime),
+              ...u16(dosDate),
+              ...u32(crc),
+              ...u32(dataB.length),
+              ...u32(dataB.length),
+              ...u16(nameB.length),
+              ...u16(0),
+            ];
+            parts.push(new Uint8Array(local), nameB, dataB);
+            central.push({ nameB, crc, size: dataB.length, offset });
+            offset += local.length + nameB.length + dataB.length;
+          }
+
+          const cenParts = [];
+          let cenSize = 0;
+          for (const c of central) {
+            const h = [
+              ...u32(0x02014b50),
+              ...u16(20),
+              ...u16(20),
+              ...u16(0),
+              ...u16(0),
+              ...u16(dosTime),
+              ...u16(dosDate),
+              ...u32(c.crc),
+              ...u32(c.size),
+              ...u32(c.size),
+              ...u16(c.nameB.length),
+              ...u16(0),
+              ...u16(0),
+              ...u16(0),
+              ...u16(0),
+              ...u32(0),
+              ...u32(c.offset),
+            ];
+            cenParts.push(new Uint8Array(h), c.nameB);
+            cenSize += h.length + c.nameB.length;
+          }
+          const end = [
+            ...u32(0x06054b50),
+            ...u16(0),
+            ...u16(0),
+            ...u16(central.length),
+            ...u16(central.length),
+            ...u32(cenSize),
+            ...u32(offset),
+            ...u16(0),
+          ];
+          return new Blob([...parts, ...cenParts, new Uint8Array(end)], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          });
+        }
+
+        // ---------- XLSX ----------
+        const colName = (n) => {
+          let s = "";
+          n++;
+          while (n > 0) {
+            const r = (n - 1) % 26;
+            s = String.fromCharCode(65 + r) + s;
+            n = Math.floor((n - 1) / 26);
+          }
+          return s;
+        };
+        // cell: {v, s, t} — t "n" number, "s" inline string
+        function sheetXml(rows, opts = {}) {
+          let body = "";
+          rows.forEach((cells, ri) => {
+            if (!cells) return;
+            const r = ri + 1;
+            let rowS = `<row r="${r}"${opts.rowHeights && opts.rowHeights[ri] ? ` ht="${opts.rowHeights[ri]}" customHeight="1"` : ""}>`;
+            cells.forEach((c, ci) => {
+              if (c === null || c === undefined) return;
+              const ref = colName(ci) + r;
+              const st = c.s ? ` s="${c.s}"` : "";
+              if (c.t === "n") rowS += `<c r="${ref}"${st}><v>${c.v}</v></c>`;
+              else
+                rowS += `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${escX(c.v)}</t></is></c>`;
+            });
+            body += rowS + "</row>";
+          });
+          const cols = (opts.widths || [])
+            .map(
+              (w, i) =>
+                `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`,
+            )
+            .join("");
+          const freeze = opts.freeze
+            ? `<sheetViews><sheetView workbookViewId="0"><pane ySplit="${opts.freeze}" topLeftCell="A${opts.freeze + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
+            : "";
+          return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${freeze}${cols ? `<cols>${cols}</cols>` : ""}<sheetData>${body}</sheetData></worksheet>`;
+        }
+
+        const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="2">
+<numFmt numFmtId="164" formatCode="&quot;\u20b9&quot;#,##0.00"/>
+<numFmt numFmtId="165" formatCode="&quot;\u20b9&quot;#,##0.00;[Red]&quot;\u20b9&quot;-#,##0.00"/>
+</numFmts>
+<fonts count="5">
+<font><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="16"/><color rgb="FF1C2230"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+<font><sz val="10"/><color rgb="FF6C7793"/><name val="Calibri"/></font>
+</fonts>
+<fills count="4">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF1C2230"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF2F4F8"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="2">
+<border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FFCBD2E0"/></left><right style="thin"><color rgb="FFCBD2E0"/></right><top style="thin"><color rgb="FFCBD2E0"/></top><bottom style="thin"><color rgb="FFCBD2E0"/></bottom><diagonal/></border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="9">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0"/>
+<xf numFmtId="165" fontId="1" fillId="0" borderId="1" xfId="0"/>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="164" fontId="1" fillId="3" borderId="1" xfId="0"/>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+
+        const S = {
+          NORM: 0,
+          BOLD: 1,
+          TITLE: 2,
+          HEAD: 3,
+          CELL: 4,
+          MONEY: 5,
+          NET: 6,
+          MUTED: 7,
+          TOTAL: 8,
+        };
+
+        function buildXlsx() {
+          const R = reportData();
+          const money = (paise) => ({
+            v: (paise / 100).toFixed(2),
+            t: "n",
+            s: S.MONEY,
+          });
+          const txt = (v) => ({ v, s: S.CELL });
+
+          // -- Expenses --
+          const exp = [
+            [{ v: tripName() + " — expenses", s: S.TITLE }],
+            [{ v: "Generated " + todayLabel(), s: S.MUTED }],
+            [],
+            [
+              { v: "#", s: S.HEAD },
+              { v: "Date", s: S.HEAD },
+              { v: "Paid by", s: S.HEAD },
+              { v: "For what", s: S.HEAD },
+              { v: "Amount", s: S.HEAD },
+              { v: "Split", s: S.HEAD },
+            ],
+          ];
+          expenses.forEach((e, i) => {
+            const split =
+              e.mode === "equal"
+                ? `${e.forWhom.length} people, equally`
+                : e.forWhom
+                    .map((w) => `${w} ${(e.splits[w] / 100).toFixed(2)}`)
+                    .join("; ");
+            exp.push([
+              { v: i + 1, t: "n", s: S.CELL },
+              txt(e.date || ""),
+              txt(e.payer),
+              txt(e.desc),
+              money(e.paise),
+              txt(split),
+            ]);
+          });
+          exp.push([]);
+          exp.push([
+            null,
+            null,
+            null,
+            { v: "Total", s: S.BOLD },
+            { v: (R.total / 100).toFixed(2), t: "n", s: S.TOTAL },
+          ]);
+
+          // -- Balances --
+          const bal = [
+            [{ v: tripName() + " — balances", s: S.TITLE }],
+            [
+              {
+                v: `${people.length} travellers · ${expenses.length} expenses · ₹${(R.perHead / 100).toFixed(2)} average per head`,
+                s: S.MUTED,
+              },
+            ],
+            [],
+            [
+              { v: "Person", s: S.HEAD },
+              { v: "Paid", s: S.HEAD },
+              { v: "Their share", s: S.HEAD },
+              { v: "Net", s: S.HEAD },
+              { v: "Status", s: S.HEAD },
+            ],
+          ];
+          people.forEach((p) => {
+            bal.push([
+              txt(p),
+              money(R.paid[p]),
+              money(R.share[p]),
+              { v: (R.net[p] / 100).toFixed(2), t: "n", s: S.NET },
+              txt(
+                R.net[p] > 0 ? "gets back" : R.net[p] < 0 ? "owes" : "settled",
+              ),
+            ]);
+          });
+
+          // -- Settlements (after any payments already recorded) --
+          const subtitle = R.payments.length
+            ? R.tx.length
+              ? `${R.tx.length} payment${R.tx.length > 1 ? "s" : ""} left after ${R.payments.length} already recorded`
+              : `All square — ${R.payments.length} payment${R.payments.length > 1 ? "s" : ""} recorded settles it`
+            : R.tx.length
+              ? `${R.tx.length} payment${R.tx.length > 1 ? "s" : ""} settles everything`
+              : "All square — nobody owes anything";
+          const set = [
+            [{ v: tripName() + " — who pays whom", s: S.TITLE }],
+            [{ v: subtitle, s: S.MUTED }],
+            [],
+            [
+              { v: "#", s: S.HEAD },
+              { v: "From", s: S.HEAD },
+              { v: "To", s: S.HEAD },
+              { v: "Amount", s: S.HEAD },
+            ],
+          ];
+          R.tx.forEach((t, i) => {
+            set.push([
+              { v: i + 1, t: "n", s: S.CELL },
+              txt(t.from),
+              txt(t.to),
+              money(t.paise),
+            ]);
+          });
+
+          const sheets = [
+            {
+              name: "Expenses",
+              xml: sheetXml(exp, {
+                widths: [5, 12, 16, 26, 14, 40],
+                freeze: 4,
+              }),
+            },
+            {
+              name: "Balances",
+              xml: sheetXml(bal, { widths: [18, 14, 14, 14, 13], freeze: 4 }),
+            },
+            {
+              name: "Settlements",
+              xml: sheetXml(set, { widths: [5, 18, 18, 14], freeze: 4 }),
+            },
+          ];
+          if (R.payments.length) {
+            const pay = [
+              [{ v: tripName() + " — payments recorded", s: S.TITLE }],
+              [
+                {
+                  v: "Payments people made outside the app, logged here",
+                  s: S.MUTED,
+                },
+              ],
+              [],
+              [
+                { v: "#", s: S.HEAD },
+                { v: "Date", s: S.HEAD },
+                { v: "From", s: S.HEAD },
+                { v: "To", s: S.HEAD },
+                { v: "Amount", s: S.HEAD },
+              ],
+            ];
+            R.payments.forEach((p, i) => {
+              pay.push([
+                { v: i + 1, t: "n", s: S.CELL },
+                txt(p.date || ""),
+                txt(p.from),
+                txt(p.to),
+                money(p.paise),
+              ]);
+            });
+            sheets.push({
+              name: "Payments",
+              xml: sheetXml(pay, { widths: [5, 12, 16, 16, 14], freeze: 4 }),
+            });
+          }
+
+          const files = [
+            {
+              name: "[Content_Types].xml",
+              data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+${sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`,
+            },
+            {
+              name: "_rels/.rels",
+              data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`,
+            },
+            {
+              name: "xl/workbook.xml",
+              data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>${sheets.map((s, i) => `<sheet name="${escX(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets>
+</workbook>`,
+            },
+            {
+              name: "xl/_rels/workbook.xml.rels",
+              data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("")}
+<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`,
+            },
+            { name: "xl/styles.xml", data: STYLES_XML },
+            ...sheets.map((s, i) => ({
+              name: `xl/worksheets/sheet${i + 1}.xml`,
+              data: s.xml,
+            })),
+          ];
+          return zipStore(files);
+        }
+
+        // ---------- PDF ----------
+        // Helvetica / Helvetica-Bold advance widths (units per 1000) for ASCII,
+        // needed so amounts can be right-aligned and long text truncated cleanly.
+        const HW =
+          "278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 278 278 584 584 584 556 1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 667 778 722 667 611 722 667 944 667 667 611 278 278 278 469 556 333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 556 556 333 500 278 556 500 722 500 500 500 334 260 334 584"
+            .split(" ")
+            .map(Number);
+        const HB =
+          "278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 333 333 584 584 584 611 975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 667 778 722 667 611 722 667 944 667 667 611 333 278 333 584 556 333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 611 611 389 556 333 611 556 778 556 556 500 389 280 389 584"
+            .split(" ")
+            .map(Number);
+        const charW = (ch, bold) => {
+          const c = ch.charCodeAt(0);
+          if (c < 32 || c > 126) return bold ? 611 : 556;
+          return (bold ? HB : HW)[c - 32];
+        };
+        const textW = (s, size, bold) => {
+          let w = 0;
+          for (const ch of String(s)) w += charW(ch, bold);
+          return (w * size) / 1000;
+        };
+        // Base-14 fonts use WinAnsi, which has no rupee glyph — reports print
+        // plain numbers and state the currency in the header instead.
+        function pdfSafe(s) {
+          return String(s)
+            .replace(/\u20b9/g, "Rs ")
+            .replace(/[\u2018\u2019]/g, "'")
+            .replace(/[\u201c\u201d]/g, '"')
+            .replace(/[\u2013\u2014]/g, "-")
+            .replace(/\u00b7/g, "-")
+            .replace(/[^\x20-\xFF]/g, "?");
+        }
+        const pdfEsc = (s) =>
+          pdfSafe(s)
+            .replace(/\\/g, "\\\\")
+            .replace(/\(/g, "\\(")
+            .replace(/\)/g, "\\)");
+        function ellipsize(s, maxW, size, bold) {
+          s = pdfSafe(s);
+          if (textW(s, size, bold) <= maxW) return s;
+          let out = s;
+          while (out.length > 1 && textW(out + "...", size, bold) > maxW)
+            out = out.slice(0, -1);
+          return out + "...";
+        }
+        const nfmt = (paise) =>
+          (paise / 100).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+
+        function buildPdf() {
+          const R = reportData();
+          const PW = 595.28,
+            PH = 841.89,
+            M = 44;
+          const pages = [];
+          let ops = [],
+            y = 0;
+
+          const newPage = () => {
+            ops = [];
+            pages.push(ops);
+            y = PH - M;
+          };
+          const need = (h) => {
+            if (y - h < M + 26) {
+              newPage();
+              return true;
+            }
+            return false;
+          };
+          const text = (s, x, size, bold, color) => {
+            ops.push(
+              `BT /${bold ? "F2" : "F1"} ${size} Tf ${color || "0 0 0"} rg 1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm (${pdfEsc(s)}) Tj ET`,
+            );
+          };
+          const textR = (s, xRight, size, bold, color) =>
+            text(s, xRight - textW(pdfSafe(s), size, bold), size, bold, color);
+          const rect = (x, w, h, col) =>
+            ops.push(
+              `${col} rg ${x.toFixed(2)} ${(y - h + 3).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`,
+            );
+          const rule = (col) =>
+            ops.push(
+              `${col || "0.80 0.83 0.88"} RG 0.6 w ${M} ${y.toFixed(2)} m ${PW - M} ${y.toFixed(2)} l S`,
+            );
+
+          newPage();
+
+          // ---- header ----
+          text(pdfSafe(tripName()), M, 20, true, "0.11 0.13 0.18");
+          y -= 17;
+          text(
+            "Expense report  ·  " + todayLabel() + "  ·  all amounts in INR",
+            M,
+            9.5,
+            false,
+            "0.45 0.48 0.55",
+          );
+          y -= 12;
+          rule("0.72 0.76 0.83");
+          y -= 20;
+
+          // ---- summary strip ----
+          const cards = [
+            ["Total spend", nfmt(R.total)],
+            ["Travellers", String(people.length)],
+            ["Expenses", String(expenses.length)],
+            ["Average per head", nfmt(R.perHead)],
+          ];
+          const cw = (PW - M * 2) / cards.length;
+          rect(M, PW - M * 2, 42, "0.95 0.96 0.98");
+          cards.forEach((c, i) => {
+            const x = M + i * cw + 10;
+            const save = y;
+            y -= 12;
+            text(c[0].toUpperCase(), x, 7.5, false, "0.45 0.48 0.55");
+            y -= 14;
+            text(c[1], x, 13, true, "0.11 0.13 0.18");
+            y = save;
+          });
+          y -= 56;
+
+          // ---- generic table ----
+          const table = (title, cols, rows, opts = {}) => {
+            need(70);
+            text(title, M, 12.5, true, "0.11 0.13 0.18");
+            y -= 15;
+            const total = cols.reduce((s, c) => s + c.w, 0);
+            const scale = (PW - M * 2) / total;
+            const xs = [];
+            let acc = M;
+            cols.forEach((c) => {
+              xs.push(acc);
+              acc += c.w * scale;
+            });
+
+            const header = () => {
+              rect(M, PW - M * 2, 18, "0.11 0.13 0.18");
+              y -= 12;
+              cols.forEach((c, i) => {
+                const w = c.w * scale;
+                if (c.right) textR(c.h, xs[i] + w - 7, 8.5, true, "1 1 1");
+                else text(c.h, xs[i] + 7, 8.5, true, "1 1 1");
+              });
+              y -= 9;
+            };
+            header();
+
+            rows.forEach((r, ri) => {
+              if (need(20)) {
+                y -= 4;
+                header();
+              }
+              if (ri % 2 === 1) rect(M, PW - M * 2, 16, "0.97 0.975 0.985");
+              y -= 11;
+              cols.forEach((c, i) => {
+                const w = c.w * scale;
+                const raw = r[i] == null ? "" : String(r[i]);
+                const col = c.color ? c.color(r, raw) : "0.15 0.17 0.22";
+                if (c.right) textR(raw, xs[i] + w - 7, 9, !!c.bold, col);
+                else
+                  text(
+                    ellipsize(raw, w - 14, 9, !!c.bold),
+                    xs[i] + 7,
+                    9,
+                    !!c.bold,
+                    col,
+                  );
+              });
+              y -= 5;
+            });
+            if (opts.footer) {
+              need(20);
+              y -= 12;
+              rule("0.72 0.76 0.83");
+              y -= 12;
+              cols.forEach((c, i) => {
+                const w = c.w * scale;
+                const raw =
+                  opts.footer[i] == null ? "" : String(opts.footer[i]);
+                if (!raw) return;
+                if (c.right)
+                  textR(raw, xs[i] + w - 7, 10, true, "0.11 0.13 0.18");
+                else text(raw, xs[i] + 7, 10, true, "0.11 0.13 0.18");
+              });
+              y -= 8;
+            }
+            y -= 22;
+          };
+
+          const neg = "0.78 0.28 0.20",
+            pos = "0.15 0.55 0.36";
+
+          const splitText = (e) =>
+            e.mode === "equal"
+              ? `${e.forWhom.length} people, equally`
+              : e.forWhom.map((w) => `${w} ${nfmt(e.splits[w])}`).join(", ");
+
+          table(
+            "Expenses",
+            [
+              { h: "#", w: 5, right: true },
+              { h: "Date", w: 15 },
+              { h: "Paid by", w: 15 },
+              { h: "For what", w: 19 },
+              { h: "Split", w: 26 },
+              { h: "Amount", w: 20, right: true, bold: true },
+            ],
+            expenses.map((e, i) => [
+              i + 1,
+              e.date || "",
+              e.payer,
+              e.desc,
+              splitText(e),
+              nfmt(e.paise),
+            ]),
+            { footer: [null, null, null, null, "Total", nfmt(R.total)] },
+          );
+
+          table(
+            "Balances  ·  paid vs. share, before any payments below",
+            [
+              { h: "Person", w: 26 },
+              { h: "Paid", w: 18, right: true },
+              { h: "Their share", w: 20, right: true },
+              {
+                h: "Net",
+                w: 18,
+                right: true,
+                bold: true,
+                color: (r) =>
+                  r[4] === "gets back"
+                    ? pos
+                    : r[4] === "owes"
+                      ? neg
+                      : "0.4 0.43 0.5",
+              },
+              { h: "Status", w: 18 },
+            ],
+            people.map((p) => [
+              p,
+              nfmt(R.paid[p]),
+              nfmt(R.share[p]),
+              nfmt(Math.abs(R.net[p])),
+              R.net[p] > 0 ? "gets back" : R.net[p] < 0 ? "owes" : "settled",
+            ]),
+          );
+
+          if (R.payments.length) {
+            table(
+              "Payments recorded",
+              [
+                { h: "#", w: 5, right: true },
+                { h: "Date", w: 15 },
+                { h: "From", w: 27 },
+                { h: "To", w: 27 },
+                { h: "Amount", w: 26, right: true, bold: true },
+              ],
+              R.payments.map((p, i) => [
+                i + 1,
+                p.date || "",
+                p.from,
+                p.to,
+                nfmt(p.paise),
+              ]),
+            );
+          }
+
+          const whoTitle = R.payments.length
+            ? "Who still pays whom"
+            : "Who pays whom";
+          if (R.tx.length) {
+            table(
+              whoTitle,
+              [
+                { h: "#", w: 5, right: true },
+                { h: "From", w: 30 },
+                { h: "To", w: 30 },
+                { h: "Amount", w: 20, right: true, bold: true },
+              ],
+              R.tx.map((t, i) => [i + 1, t.from, t.to, nfmt(t.paise)]),
+            );
+          } else {
+            need(40);
+            text(
+              R.payments.length
+                ? "All square — the payments above cover it."
+                : "All square — nobody owes anything.",
+              M,
+              11,
+              true,
+              "0.15 0.55 0.36",
+            );
+            y -= 24;
+          }
+
+          // ---- footers (needs the final page count, so stamped last) ----
+          pages.forEach((p, i) => {
+            p.push(
+              `BT /F1 8 Tf 0.55 0.58 0.64 rg 1 0 0 1 ${M} ${M - 8} Tm (${pdfEsc(tripName() + " - expense report")}) Tj ET`,
+            );
+            const lbl = `Page ${i + 1} of ${pages.length}`;
+            p.push(
+              `BT /F1 8 Tf 0.55 0.58 0.64 rg 1 0 0 1 ${(PW - M - textW(lbl, 8, false)).toFixed(2)} ${M - 8} Tm (${pdfEsc(lbl)}) Tj ET`,
+            );
+          });
+
+          // ---- assemble ----
+          const objs = [];
+          const add = (s) => {
+            objs.push(s);
+            return objs.length;
+          };
+          const kidsId = 2;
+          const pageIds = pages.map((_, i) => 3 + i * 2);
+
+          add(`<< /Type /Catalog /Pages ${kidsId} 0 R >>`);
+          add(
+            `<< /Type /Pages /Count ${pages.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] >>`,
+          );
+          const fontA = 3 + pages.length * 2;
+          pages.forEach((p, i) => {
+            add(
+              `<< /Type /Page /Parent ${kidsId} 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /Font << /F1 ${fontA} 0 R /F2 ${fontA + 1} 0 R >> >> /Contents ${pageIds[i] + 1} 0 R >>`,
+            );
+            const stream = p.join("\n");
+            add(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+          });
+          add(
+            `<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>`,
+          );
+          add(
+            `<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>`,
+          );
+
+          let out = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+          const offsets = [];
+          objs.forEach((o, i) => {
+            offsets.push(out.length);
+            out += `${i + 1} 0 obj\n${o}\nendobj\n`;
+          });
+          const xref = out.length;
+          out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+          offsets.forEach((o) => {
+            out += String(o).padStart(10, "0") + " 00000 n \n";
+          });
+          out += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+
+          const bytes = new Uint8Array(out.length);
+          for (let i = 0; i < out.length; i++)
+            bytes[i] = out.charCodeAt(i) & 0xff;
+          return new Blob([bytes], { type: "application/pdf" });
+        }
+
+        function doExport(kind) {
+          if (!expenses.length) return;
+          try {
+            if (kind === "xlsx")
+              download(buildXlsx(), fileStem() + "-expenses.xlsx");
+            else download(buildPdf(), fileStem() + "-expenses.pdf");
+          } catch (err) {
+            $("err-export").textContent =
+              "Sorry — the file could not be created. " +
+              (err && err.message ? err.message : "");
           }
         }
 
@@ -661,10 +2083,44 @@
         $("inp-desc").addEventListener("keydown", (e) => {
           if (e.key === "Enter") addExpense();
         });
+        $("inp-amount").addEventListener("input", () => {
+          if (currentMode() === "exact") updateSplitHint();
+        });
+        document.querySelectorAll("#split-mode button").forEach((b) => {
+          b.onclick = () => {
+            document
+              .querySelectorAll("#split-mode button")
+              .forEach((x) => x.classList.remove("on"));
+            b.classList.add("on");
+            renderSplitRows();
+          };
+        });
+        $("inp-trip").addEventListener("change", save);
+        $("btn-record-payment").onclick = () => {
+          const from = $("sel-pay-from").value;
+          const to = $("sel-pay-to").value;
+          const amt = parseFloat($("inp-pay-amount").value);
+          const date = $("inp-pay-date").value || null;
+          if (!from || !to || from === to) {
+            $("err-payment").textContent = "Pick two different people.";
+            return;
+          }
+          if (!(amt > 0)) {
+            $("err-payment").textContent = "Enter a valid amount.";
+            return;
+          }
+          $("err-payment").textContent = "";
+          recordPayment(from, to, Math.round(amt * 100), date);
+          $("inp-pay-amount").value = "";
+        };
+        $("btn-xlsx").onclick = () => doExport("xlsx");
+        $("btn-pdf").onclick = () => doExport("pdf");
         $("btn-reset").onclick = () => {
-          if (confirm("Clear all travellers and expenses?")) {
+          if (confirm("Clear all travellers, expenses, and payments?")) {
             people = [];
             expenses = [];
+            payments = [];
+            $("inp-trip").value = "";
             stopEdit();
             save();
             render();
