@@ -1,0 +1,2778 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Glitchword · Phoenix Hub</title>
+    <meta
+      name="description"
+      content="Glitchword — a 10-round, 30-word Wordle variant — five-letter words, turn-efficiency scoring and flagged glitched tiles that invert their feedback."
+    />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <script src="theme.js"></script>
+    <script>
+      window.va =
+        window.va ||
+        function () {
+          (window.vaq = window.vaq || []).push(arguments);
+        };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Glitchword — tokens namespaced --gw-* so nothing leaks into Hub styles.css */
+      :root {
+        --gw-bg: #0d1016;
+        --gw-surface: #151a22;
+        --gw-surface-2: #1c222c;
+        --gw-line: #2a313d;
+        --gw-line-2: #3a4250;
+        --gw-text: #e6e9ee;
+        --gw-muted: #9aa3b2;
+        --gw-accent: #22d3ee;
+        --gw-accent-2: #ff3d7f;
+        --gw-green: #3fb950;
+        --gw-yellow: #d4a72c;
+        --gw-gray: #3a414c;
+        --gw-key: #2a313c;
+        --gw-tile-text: #fff;
+        --gw-gold: #e3b341;
+        --gw-red: #f85149;
+        --gw-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+        --gw-mono: "JetBrains Mono", ui-monospace, monospace;
+        --gw-sans: "Inter", system-ui, sans-serif;
+        --gw-tile: 56px;
+      }
+      [data-theme="parchment"] {
+        --gw-bg: #f4ecd8;
+        --gw-surface: #fbf6e9;
+        --gw-surface-2: #efe4c9;
+        --gw-line: #d7c8a4;
+        --gw-line-2: #c4b38c;
+        --gw-text: #2b2418;
+        --gw-muted: #6b5e45;
+        --gw-accent: #0e7490;
+        --gw-accent-2: #be185d;
+        --gw-green: #2f8a3d;
+        --gw-yellow: #b7861b;
+        --gw-gray: #8a8272;
+        --gw-key: #e4d7b8;
+        --gw-gold: #9a6b00;
+        --gw-red: #b42318;
+        --gw-shadow: 0 20px 50px rgba(60, 40, 10, 0.25);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--gw-bg);
+        color: var(--gw-text);
+        font: 15px/1.5 var(--gw-sans);
+        -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent;
+        overflow-x: hidden;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      :focus-visible {
+        outline: 2px solid var(--gw-accent);
+        outline-offset: 2px;
+      }
+
+      /* ---------- header ---------- */
+      .gw-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--gw-line);
+        background: var(--gw-bg);
+        position: sticky;
+        top: 0;
+        z-index: 30;
+      }
+      .gw-top .back {
+        font: 600 12px var(--gw-mono);
+        color: var(--gw-muted);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .gw-top .back:hover {
+        color: var(--gw-accent);
+      }
+      .logo {
+        font: 800 20px var(--gw-mono);
+        letter-spacing: 0.02em;
+        position: relative;
+        margin: 0 6px;
+      }
+      .logo::before,
+      .logo::after {
+        content: attr(data-text);
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.6;
+      }
+      .logo::before {
+        color: var(--gw-accent-2);
+        transform: translate(1.5px, 0);
+        clip-path: inset(0 0 55% 0);
+      }
+      .logo::after {
+        color: var(--gw-accent);
+        transform: translate(-1.5px, 0);
+        clip-path: inset(55% 0 0 0);
+      }
+      .chip {
+        font: 600 11px var(--gw-mono);
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--gw-line);
+        background: var(--gw-surface);
+        color: var(--gw-muted);
+        white-space: nowrap;
+      }
+      .chip b {
+        color: var(--gw-text);
+      }
+      .legend-chip {
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend-chip.on {
+        display: inline-flex;
+      }
+      .legend-chip i {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        background: var(--gw-gray);
+        outline: 1.5px dashed var(--gw-accent-2);
+        outline-offset: 1px;
+        display: inline-block;
+      }
+      .top-spacer {
+        flex: 1;
+      }
+      .icon-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        border: 1px solid var(--gw-line);
+        background: var(--gw-surface);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        font: 700 15px var(--gw-mono);
+        color: var(--gw-muted);
+      }
+      .icon-btn:hover {
+        color: var(--gw-text);
+        border-color: var(--gw-line-2);
+      }
+
+      /* ---------- layout ---------- */
+      .app {
+        display: grid;
+        grid-template-columns: 230px minmax(0, 1fr) 250px;
+        gap: 24px;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 18px 20px 24px;
+      }
+      .rail {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .card {
+        background: var(--gw-surface);
+        border: 1px solid var(--gw-line);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .card h3 {
+        margin: 0 0 10px;
+        font: 600 11px var(--gw-mono);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--gw-muted);
+      }
+      .center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 0;
+      }
+
+      /* ladder */
+      .ladder {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .lcell {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        font: 12px var(--gw-mono);
+        color: var(--gw-muted);
+      }
+      .lcell .rn {
+        font-weight: 700;
+      }
+      .lcell .dots {
+        display: flex;
+        gap: 3px;
+      }
+      .lcell .dots i {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        background: var(--gw-line);
+      }
+      .lcell .dots i.s {
+        background: var(--gw-green);
+      }
+      .lcell .dots i.f {
+        background: var(--gw-red);
+      }
+      .lcell .dots i.a {
+        background: var(--gw-accent);
+        animation: gw-pulse 1.4s infinite;
+      }
+      .lcell .sc {
+        font-weight: 700;
+        color: var(--gw-text);
+        text-align: right;
+        min-width: 36px;
+      }
+      .lcell .sc.up {
+        color: var(--gw-green);
+      }
+      .lcell .sc.dn {
+        color: var(--gw-red);
+      }
+      .lcell.cur {
+        border-color: var(--gw-accent);
+        background: color-mix(in srgb, var(--gw-accent) 8%, transparent);
+        color: var(--gw-text);
+      }
+      .lcell.lock {
+        opacity: 0.5;
+      }
+      @keyframes gw-pulse {
+        50% {
+          opacity: 0.35;
+        }
+      }
+      .tier {
+        font: 700 15px var(--gw-mono);
+      }
+      .tier-meta {
+        font: 12px var(--gw-mono);
+        color: var(--gw-muted);
+        margin-top: 4px;
+        line-height: 1.7;
+      }
+
+      /* score */
+      .big {
+        font: 800 34px/1 var(--gw-mono);
+      }
+      .big small {
+        font: 600 15px var(--gw-mono);
+        color: var(--gw-muted);
+      }
+      .pace {
+        height: 10px;
+        border-radius: 99px;
+        background: var(--gw-surface-2);
+        position: relative;
+        margin: 14px 0 22px;
+      }
+      .pace .fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: 99px;
+        background: linear-gradient(90deg, var(--gw-accent), var(--gw-green));
+        transition: width 0.6s ease;
+      }
+      .pace .mark {
+        position: absolute;
+        top: -4px;
+        width: 2px;
+        height: 18px;
+        background: var(--gw-gold);
+        transition: left 0.6s ease;
+      }
+      .pace .mark span {
+        position: absolute;
+        top: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        font: 600 10px var(--gw-mono);
+        color: var(--gw-gold);
+        white-space: nowrap;
+      }
+      .delta {
+        font: 600 12px var(--gw-mono);
+      }
+      .delta.up {
+        color: var(--gw-green);
+      }
+      .delta.dn {
+        color: var(--gw-red);
+      }
+      .preview {
+        font: 12px/1.8 var(--gw-mono);
+        color: var(--gw-muted);
+      }
+      .preview b {
+        color: var(--gw-accent);
+        font-size: 18px;
+      }
+      .meta-line {
+        font: 11px var(--gw-mono);
+        color: var(--gw-muted);
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      /* status strip (mobile) */
+      .strip {
+        display: none;
+      }
+
+      /* ---------- board ---------- */
+      .word-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin: 2px 0 12px;
+        font: 600 12px var(--gw-mono);
+        color: var(--gw-muted);
+      }
+      .word-head .role {
+        color: var(--gw-text);
+      }
+      .word-head .gl-tag {
+        color: var(--gw-accent-2);
+      }
+      .board {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .brow {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+      }
+      .brow.shake {
+        animation: gw-shake 0.42s;
+      }
+      .brow.win .tile {
+        animation: gw-bounce 0.5s both;
+      }
+      @keyframes gw-shake {
+        20%,
+        60% {
+          transform: translateX(-7px);
+        }
+        40%,
+        80% {
+          transform: translateX(7px);
+        }
+      }
+      @keyframes gw-bounce {
+        40% {
+          transform: translateY(-10px);
+        }
+        70% {
+          transform: translateY(2px);
+        }
+      }
+      .tile {
+        width: var(--gw-tile);
+        height: var(--gw-tile);
+        display: grid;
+        place-items: center;
+        font: 800 calc(var(--gw-tile) * 0.46) var(--gw-mono);
+        text-transform: uppercase;
+        border-radius: 7px;
+        border: 2px solid var(--gw-line);
+        background: transparent;
+        color: var(--gw-text);
+        position: relative;
+        user-select: none;
+      }
+      .tile.filled {
+        border-color: var(--gw-line-2);
+        animation: gw-pop 0.1s;
+      }
+      @keyframes gw-pop {
+        50% {
+          transform: scale(1.08);
+        }
+      }
+      .tile .cb {
+        position: absolute;
+        left: 4px;
+        top: 1px;
+        font-size: calc(var(--gw-tile) * 0.22);
+        display: none;
+      }
+      body.cbm .tile .cb {
+        display: block;
+      }
+      .tile.G,
+      .tile.Y,
+      .tile.X {
+        border-color: transparent;
+        color: var(--gw-tile-text);
+      }
+      .tile.G {
+        background: var(--gw-green);
+      }
+      .tile.Y {
+        background: var(--gw-yellow);
+      }
+      .tile.X {
+        background: var(--gw-gray);
+      }
+      .tile.flip {
+        animation: gw-flip 0.5s ease both;
+      }
+      @keyframes gw-flip {
+        0% {
+          transform: rotateX(0);
+        }
+        50% {
+          transform: rotateX(90deg);
+        }
+        100% {
+          transform: rotateX(0);
+        }
+      }
+      /* Glitch flag — 4 cues: dashed RGB-split frame, crack/scanline overlay, ⌁ badge, aria-label */
+      .tile.gl {
+        outline: 2px dashed var(--gw-accent-2);
+        outline-offset: 2px;
+        box-shadow:
+          -3px 0 0 -1px var(--gw-accent),
+          3px 0 0 -1px var(--gw-accent-2);
+      }
+      .tile.gl::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background:
+          linear-gradient(
+            115deg,
+            transparent 46%,
+            rgba(255, 255, 255, 0.5) 47%,
+            transparent 49%
+          ),
+          linear-gradient(
+            35deg,
+            transparent 60%,
+            rgba(255, 255, 255, 0.32) 61%,
+            transparent 63%
+          ),
+          repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.14) 0 2px,
+            transparent 2px 4px
+          );
+      }
+      .tile.gl::after {
+        content: "⌁";
+        position: absolute;
+        top: -9px;
+        right: -9px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--gw-accent-2);
+        color: #fff;
+        font: 700 12px/18px var(--gw-mono);
+        text-align: center;
+        z-index: 2;
+      }
+      .tile.gl.pre {
+        opacity: 0.9;
+      }
+      .tile.gl.pre::before {
+        background: repeating-linear-gradient(
+          0deg,
+          color-mix(in srgb, var(--gw-accent-2) 10%, transparent) 0 2px,
+          transparent 2px 4px
+        );
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .tile.gl {
+          animation: gw-flick 2.4s infinite steps(1);
+        }
+        .tile.gl.flip {
+          animation: gw-flip 0.5s ease both;
+        }
+      }
+      @keyframes gw-flick {
+        0%,
+        88% {
+          box-shadow:
+            -3px 0 0 -1px var(--gw-accent),
+            3px 0 0 -1px var(--gw-accent-2);
+        }
+        90% {
+          box-shadow:
+            3px 0 0 -1px var(--gw-accent),
+            -3px 0 0 -1px var(--gw-accent-2);
+        }
+        94% {
+          box-shadow:
+            -5px 1px 0 -1px var(--gw-accent),
+            5px -1px 0 -1px var(--gw-accent-2);
+        }
+      }
+      .tile.stab {
+        animation: gw-stab 0.45s ease both !important;
+      }
+      @keyframes gw-stab {
+        0% {
+          transform: scale(1);
+          filter: brightness(1);
+        }
+        40% {
+          transform: scale(1.12);
+          filter: brightness(1.6);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .tile.flip,
+        .tile.stab,
+        .brow.win .tile,
+        .brow.shake,
+        .tile.filled {
+          animation: none !important;
+        }
+      }
+
+      /* banner */
+      .banner {
+        width: 100%;
+        max-width: 470px;
+        min-height: 0;
+        margin: 0 0 12px;
+      }
+      .banner .inner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: var(--gw-surface);
+        border: 1px solid var(--gw-line);
+        border-radius: 12px;
+        padding: 10px 12px;
+        animation: gw-rise 0.3s ease both;
+      }
+      .banner .res {
+        font: 600 13px var(--gw-mono);
+      }
+      .banner .res .pts {
+        font: 800 22px var(--gw-mono);
+        color: var(--gw-green);
+        margin-right: 6px;
+      }
+      .banner .res .pts.zero {
+        color: var(--gw-red);
+      }
+      .banner .calc {
+        font: 11px var(--gw-mono);
+        color: var(--gw-muted);
+      }
+      @keyframes gw-rise {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+      }
+
+      .submit-bar {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 0 8px;
+      }
+      .submit-bar .btn {
+        width: 100%;
+        height: 46px;
+        font-size: 14px;
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .submit-bar .btn:disabled {
+        opacity: 0.4;
+        cursor: default;
+        filter: none;
+      }
+      .submit-bar .btn kbd {
+        font: 600 11px var(--gw-mono);
+        padding: 2px 6px;
+        border-radius: 5px;
+        background: rgba(0, 0, 0, 0.18);
+      }
+      .submit-bar.hide {
+        display: none;
+      }
+      .icon-btn[aria-pressed="false"] {
+        opacity: 0.55;
+      }
+      /* keyboard */
+      .kb {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+        max-width: 500px;
+        user-select: none;
+      }
+      .kr {
+        display: flex;
+        gap: 5px;
+        justify-content: center;
+      }
+      .key {
+        flex: 1 1 0;
+        max-width: 44px;
+        height: 54px;
+        border: 0;
+        border-radius: 7px;
+        background: var(--gw-key);
+        color: var(--gw-text);
+        font: 700 15px var(--gw-mono);
+        cursor: pointer;
+        position: relative;
+        display: grid;
+        place-items: center;
+        touch-action: manipulation;
+      }
+      .key.wide {
+        max-width: 70px;
+        flex: 1.5 1 0;
+        font-size: 12px;
+      }
+      .key:active {
+        transform: translateY(1px);
+      }
+      .key.G {
+        background: var(--gw-green);
+        color: #fff;
+      }
+      .key.Y {
+        background: var(--gw-yellow);
+        color: #fff;
+      }
+      .key.X {
+        background: var(--gw-gray);
+        color: #fff;
+        opacity: 0.55;
+      }
+      .key.Q {
+        background: repeating-linear-gradient(
+          135deg,
+          var(--gw-key) 0 5px,
+          color-mix(in srgb, var(--gw-accent-2) 28%, var(--gw-key)) 5px 10px
+        );
+      }
+      .key.Q::after {
+        content: "?";
+        position: absolute;
+        top: 1px;
+        left: 5px;
+        font: 700 10px var(--gw-mono);
+        color: var(--gw-accent-2);
+      }
+
+      /* buttons */
+      .btn {
+        font: 600 13px var(--gw-mono);
+        padding: 10px 16px;
+        border-radius: 9px;
+        border: 1px solid var(--gw-line);
+        background: var(--gw-surface-2);
+        color: var(--gw-text);
+        cursor: pointer;
+      }
+      .btn:hover {
+        border-color: var(--gw-line-2);
+      }
+      .btn.pri {
+        background: var(--gw-accent);
+        border-color: var(--gw-accent);
+        color: #04161b;
+      }
+      .btn.pri:hover {
+        filter: brightness(1.08);
+      }
+      .btnrow {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      /* modals */
+      .ov {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        background: rgba(5, 8, 12, 0.62);
+        backdrop-filter: blur(3px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      [data-theme="parchment"] .ov {
+        background: rgba(60, 45, 20, 0.35);
+      }
+      .ov.open {
+        display: flex;
+      }
+      .modal {
+        width: 100%;
+        max-width: 480px;
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+        background: var(--gw-surface);
+        border: 1px solid var(--gw-line);
+        border-radius: 16px;
+        padding: 22px;
+        box-shadow: var(--gw-shadow);
+        animation: gw-rise 0.25s ease both;
+        position: relative;
+      }
+      .modal.wide {
+        max-width: 640px;
+      }
+      .modal.glow {
+        border-color: var(--gw-accent);
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--gw-accent) 30%, transparent),
+          var(--gw-shadow);
+      }
+      .modal h2 {
+        margin: 0 0 4px;
+        font: 800 22px var(--gw-mono);
+      }
+      .modal .kicker {
+        font: 700 11px var(--gw-mono);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--gw-accent);
+      }
+      .modal .kicker.win {
+        color: var(--gw-green);
+      }
+      .modal .kicker.loss {
+        color: var(--gw-red);
+      }
+      .modal p {
+        margin: 8px 0;
+        color: var(--gw-muted);
+      }
+      .modal p b {
+        color: var(--gw-text);
+      }
+      .x {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+      }
+      th,
+      td {
+        padding: 7px 8px;
+        text-align: left;
+        border-bottom: 1px solid var(--gw-line);
+      }
+      th {
+        font: 600 11px var(--gw-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--gw-muted);
+      }
+      td.n,
+      th.n {
+        text-align: right;
+        font-family: var(--gw-mono);
+      }
+      tr.tot td {
+        font-weight: 700;
+        border-bottom: 0;
+      }
+      .tbl {
+        border: 1px solid var(--gw-line);
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 12px 0;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin: 14px 0;
+      }
+      .stats div {
+        background: var(--gw-surface-2);
+        border-radius: 9px;
+        padding: 10px 6px;
+        text-align: center;
+      }
+      .stats b {
+        display: block;
+        font: 800 20px var(--gw-mono);
+      }
+      .stats small {
+        font: 10px var(--gw-mono);
+        color: var(--gw-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      pre.share {
+        background: var(--gw-bg);
+        border: 1px solid var(--gw-line);
+        border-radius: 10px;
+        padding: 12px;
+        font: 12px/1.6 var(--gw-mono);
+        white-space: pre-wrap;
+        margin: 10px 0;
+      }
+      .opt {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin: 8px 0 14px;
+      }
+      .opt button {
+        padding: 10px 6px;
+        border-radius: 10px;
+        border: 1px solid var(--gw-line);
+        background: var(--gw-surface-2);
+        cursor: pointer;
+        text-align: center;
+      }
+      .opt button b {
+        display: block;
+        font: 700 13px var(--gw-mono);
+      }
+      .opt button small {
+        font: 11px var(--gw-mono);
+        color: var(--gw-muted);
+      }
+      .opt button[aria-pressed="true"] {
+        border-color: var(--gw-accent);
+        background: color-mix(
+          in srgb,
+          var(--gw-accent) 12%,
+          var(--gw-surface-2)
+        );
+      }
+      .opt.two {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-top: 1px solid var(--gw-line);
+        font-size: 14px;
+      }
+      .toggle input {
+        width: 40px;
+        height: 22px;
+        accent-color: var(--gw-accent);
+      }
+      .help-row {
+        display: flex;
+        gap: 6px;
+        margin: 8px 0;
+      }
+      .help-row .tile {
+        --gw-tile: 34px;
+      }
+      .howto h4 {
+        margin: 16px 0 4px;
+        font: 700 12px var(--gw-mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--gw-text);
+      }
+      .howto ul {
+        margin: 6px 0;
+        padding-left: 18px;
+        color: var(--gw-muted);
+      }
+      .howto li {
+        margin: 3px 0;
+      }
+      .howto li b {
+        color: var(--gw-text);
+      }
+      .mini-board {
+        display: grid;
+        gap: 3px;
+        margin: 6px 0;
+      }
+      .mini-board .brow {
+        gap: 3px;
+        justify-content: flex-start;
+      }
+      .mini-board .tile {
+        --gw-tile: 22px;
+        border-radius: 4px;
+        border-width: 1px;
+      }
+      .mini-board .tile.gl {
+        outline-width: 1.5px;
+        outline-offset: 1px;
+      }
+      .mini-board .tile.gl::after {
+        width: 11px;
+        height: 11px;
+        font-size: 8px;
+        line-height: 11px;
+        top: -6px;
+        right: -6px;
+      }
+      .mini-board .review-round {
+        margin: 14px 0;
+        padding-top: 10px;
+        border-top: 1px solid var(--gw-line);
+      }
+      .review-round h4 {
+        margin: 0 0 8px;
+        font: 700 12px var(--gw-mono);
+        color: var(--gw-muted);
+      }
+      .review-words {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+      }
+      .review-words .w {
+        font: 11px var(--gw-mono);
+        color: var(--gw-muted);
+      }
+      .review-words .w b {
+        color: var(--gw-text);
+      }
+
+      /* toast */
+      .toasts {
+        position: fixed;
+        top: 64px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 60;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: center;
+        pointer-events: none;
+      }
+      .toast {
+        background: var(--gw-text);
+        color: var(--gw-bg);
+        font: 600 13px var(--gw-mono);
+        padding: 9px 14px;
+        border-radius: 9px;
+        box-shadow: var(--gw-shadow);
+        animation: gw-rise 0.2s ease both;
+        max-width: 88vw;
+        text-align: center;
+      }
+      .toast.warn {
+        background: var(--gw-accent-2);
+        color: #fff;
+      }
+
+      /* embed */
+      body.embed .gw-top .back {
+        display: none;
+      }
+
+      /* ---------- responsive ---------- */
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+          gap: 10px;
+          padding: 10px 12px 16px;
+          min-height: 0;
+        }
+        .rail {
+          display: none;
+        }
+        .strip {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          width: 100%;
+          max-width: 500px;
+          margin-bottom: 8px;
+        }
+        .strip-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font: 600 12px var(--gw-mono);
+          gap: 8px;
+        }
+        .strip-top .sc {
+          font: 800 18px var(--gw-mono);
+        }
+        .strip-top .sc small {
+          font: 600 12px var(--gw-mono);
+          color: var(--gw-muted);
+        }
+        .strip-ladder {
+          display: grid;
+          grid-template-columns: repeat(10, 1fr);
+          gap: 3px;
+        }
+        .strip-ladder i {
+          height: 6px;
+          border-radius: 2px;
+          background: var(--gw-line);
+        }
+        .strip-ladder i.done {
+          background: var(--gw-green);
+        }
+        .strip-ladder i.behind {
+          background: var(--gw-yellow);
+        }
+        .strip-ladder i.cur {
+          background: var(--gw-accent);
+        }
+        .strip .preview {
+          font-size: 11px;
+          text-align: center;
+        }
+        .strip .preview b {
+          font-size: 13px;
+        }
+        .word-head {
+          margin-bottom: 8px;
+        }
+      }
+      @media (max-width: 520px) {
+        .gw-top {
+          padding: 8px 10px;
+          gap: 6px;
+        }
+        .gw-top .back {
+          font-size: 0;
+        }
+        .gw-top .back::before {
+          content: "←";
+          font-size: 16px;
+        }
+        .logo {
+          font-size: 16px;
+        }
+        .hide-sm {
+          display: none !important;
+        }
+        .key {
+          height: 50px;
+          font-size: 13px;
+        }
+        .kr {
+          gap: 4px;
+        }
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .modal {
+          padding: 18px;
+        }
+      }
+      @media (max-height: 720px) and (max-width: 980px) {
+        .key {
+          height: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="gw-top">
+      <a class="back" href="index.html">← Phoenix Hub</a>
+      <span class="logo" data-text="GLITCHWORD">GLITCHWORD</span>
+      <span class="chip hide-sm" id="hdrRound">R1 · BOOT</span>
+      <button
+        class="chip legend-chip"
+        id="legendChip"
+        type="button"
+        aria-label="Glitch legend: on a glitched tile green and gray swap, yellow is true. Tap for help."
+      >
+        <i></i><span>G⇄X · Y true</span>
+      </button>
+      <span class="top-spacer"></span>
+      <button
+        class="icon-btn"
+        id="btnSound"
+        type="button"
+        aria-label="Sound effects"
+        aria-pressed="true"
+        title="Sound on/off"
+      >
+        🔊
+      </button>
+      <button
+        class="icon-btn"
+        id="btnHelp"
+        type="button"
+        aria-label="How to play"
+        title="How to play"
+      >
+        ?
+      </button>
+      <button
+        class="icon-btn"
+        id="btnReview"
+        type="button"
+        aria-label="Review boards"
+        title="Review boards"
+      >
+        ▦
+      </button>
+      <button
+        class="icon-btn"
+        id="btnMenu"
+        type="button"
+        aria-label="New session and settings"
+        title="New session &amp; settings"
+      >
+        ⚙
+      </button>
+    </header>
+
+    <div class="app">
+      <aside class="rail" aria-label="Round progress">
+        <div class="card">
+          <h3>Rounds</h3>
+          <div class="ladder" id="ladder"></div>
+        </div>
+        <div class="card">
+          <h3>Tier</h3>
+          <div class="tier" id="tierName"></div>
+          <div class="tier-meta" id="tierMeta"></div>
+        </div>
+      </aside>
+
+      <main class="center">
+        <div class="strip" id="strip" aria-hidden="true"></div>
+        <div class="word-head" id="wordHead"></div>
+        <div class="board" id="board" role="grid" aria-label="Game board"></div>
+        <div class="banner" id="banner"></div>
+        <div class="submit-bar" id="submitBar">
+          <button class="btn pri" id="btnSubmit" type="button" disabled>
+            Submit guess <kbd>Enter ↵</kbd>
+          </button>
+        </div>
+        <div class="kb" id="kb" aria-label="Keyboard"></div>
+      </main>
+
+      <aside class="rail" aria-label="Score">
+        <div class="card">
+          <h3>Session score</h3>
+          <div class="big" id="scoreBig">0 <small>/ 575</small></div>
+          <div class="pace" id="paceBar">
+            <div class="fill"></div>
+            <div class="mark"><span></span></div>
+          </div>
+          <div class="delta" id="paceDelta"></div>
+          <div class="meta-line">
+            <span id="diffLbl"></span><span id="seedLbl"></span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>If solved now</h3>
+          <div class="preview" id="preview"></div>
+        </div>
+        <div class="card">
+          <h3>Glitch rule</h3>
+          <div class="preview">
+            On a
+            <span style="color: var(--gw-accent-2)">⌁ flagged</span>
+            tile:<br />Green ⇒ letter
+            <b style="font-size: 12px; color: var(--gw-text)">absent</b
+            ><br />Gray ⇒ letter
+            <b style="font-size: 12px; color: var(--gw-text)">correct here</b
+            ><br />Yellow ⇒
+            <b style="font-size: 12px; color: var(--gw-text)">true</b> (never
+            lies)
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div
+      class="ov"
+      id="ov"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mTitle"
+    >
+      <div class="modal" id="modal"></div>
+    </div>
+    <div class="toasts" id="toasts" aria-live="assertive"></div>
+    <div class="sr" id="live" aria-live="polite"></div>
+    <script>
+      (() => {
+        "use strict";
+        const ANS =
+          "FIRST THINK RIGHT GOING STILL NEVER WORLD GREAT STATE THREE THING HOUSE PLACE FOUND MONEY NIGHT GROUP WOMEN START TODAY POINT MUSIC POWER WATER SMALL WHITE LATER ORDER PARTY THANK USING BLACK WHOLE MAYBE STORY LEAST EARLY LOCAL VIDEO YOUNG COURT GIVEN LEVEL OFTEN DEATH SOUTH KNOWN LARGE WRONG ALONG CLASS CLOSE CAUSE HAPPY HUMAN WOMAN LEAVE NORTH WATCH LIGHT SHORT TAKEN THIRD AMONG CHECK HEART CHILD MAJOR MEDIA PHONE GONNA QUITE FINAL FRONT READY BRING HEARD MARCH STUDY CLEAR MONTH BOARD FIELD FIGHT FORCE ISSUE PRICE SPACE TOTAL SHARE SENSE BREAK EVENT SORRY GUESS LEARN ALONE MOVIE PRESS TRIED WORTH SOUND VALUE ROUND STAND STUFF DRIVE GREEN MATCH MODEL TRUST RANGE TRADE CHIEF LOWER STYLE BLOOD CHINA STAGE TITLE ENJOY COVER LEGAL SEVEN STAFF SUPER UNION BEGAN BUILT CRAZY DAILY PAPER VOICE EARTH BELOW OFFER SLEEP TABLE TRUTH BUILD PIECE VISIT WANNA WROTE RIVER SPEAK WRITE ALBUM EIGHT FUNNY PEACE SPENT STORE TRACK AHEAD ALLOW BROWN RADIO CROSS FOCUS SPEED EXTRA QUICK AGREE CLEAN PHOTO SCENE SPEND COACH HEAVY TRAIN CLAIM GOTTA HOTEL JUDGE BRAIN FLOOR IMAGE MEANT REACH CIVIL DANCE STOCK TRUMP WORST BEACH OLDER COLOR DREAM GRAND SWEET TOUCH DOUBT DRINK SHOWN BASIC CARRY CRIME FULLY JAPAN PLANT SMITH WORSE AWARD BLOCK PETER AVOID CATCH COAST TRIAL TRULY QUEEN BROKE GLASS PRIOR ROYAL SERVE BEGIN TWICE WORRY BRAND COUNT FRESH MOUTH OWNER SCALE SCORE SMART THROW CLICK FAITH METAL AGENT APPLY BASIS ENTER PRIME WASTE WEIRD ADULT GRADE STONE APART AWARE FIFTH PROUD BIRTH LABOR LUCKY PROVE TOUGH ALIVE APPLE DRESS HORSE MAGIC STICK FRANK GUIDE RAISE TREAT YOUTH EXIST GUARD SHOOT SOLID SPORT TASTE HARRY HELLO PLANE SHAPE UPPER CHEAP JOINT STEEL CROWD ENEMY LIMIT OCEAN PROOF CHAIR HONOR EMAIL STUCK SUGAR DRAMA ENTRY GRANT GROWN LYING ROUTE SMOKE SQUAD TEACH ABUSE ANGRY LAUGH LUNCH STORM ACTOR CHAIN EQUAL QUIET SPLIT URBAN FAULT PHASE SMILE TRUCK BLAME DYING FALSE NOVEL SHIRT CREAM GIANT MAYOR MINOR THEME USUAL DRAFT DRUNK SPOKE UPSET CYCLE ASIDE EMPTY KINDA PRIZE RURAL ADMIT FAVOR FRAME GUEST TEETH BUNCH FRUIT INDEX SHIFT STOOD TIGHT CROWN GRACE CHOSE CRASH DEPTH DIRTY ERROR NOISE PANEL PLATE SHAME BIBLE CABLE MULTI PRINT SIGHT BROAD DRAWN MOTOR SOLAR TRIES BLIND BRIEF CHEST DEBUT PAINT PILOT STEAM EXACT QUOTE SWEAR TREND BREAD INNER REPLY ROMAN TOWER WHEEL PRIDE ROUGH SMELL TOPIC SHARP TRICK AUDIO CHART MOUNT OCCUR ARGUE AWFUL BOUND CLOUD LOOSE MORAL SHOCK THICK THREW ANGEL BONUS FLASH GROSS REFER TRAIL UNCLE BADLY CHASE IDEAL JIMMY CLOCK LABEL NAKED PITCH PIZZA PLAIN ANGER COMIC GHOST NEWLY SKILL SOLVE TRASH VIRUS BOOST CRACK KNIFE SAINT STEAL TRANS BUDDY DELAY ELITE FORTH LAYER MARRY NURSE RUGBY SHEET BENCH IDIOT MEDAL ROGER SHELL SILLY ANGLE FORUM GRASS HENCE RAPID SIXTH VALID VITAL CREEK FRAUD HONEY RATIO SCARY SPELL SWORD BEGUN DADDY DROVE GLORY JUICE LOGIC STRIP DOZEN FANCY INPUT KNOCK OUGHT FLOOD MARIA RALLY SWING ALERT ARENA BILLY BRAVE FLEET ROBIN SHAKE SHORE BLAST POUND PUNCH FEWER GRAVE MOUSE PIANO CRAFT DEVIL SAUCE SLIDE TIGER ALIEN BEAST CANDY FIFTY RELAX ALARM GLOBE SPARE CHAOS OPERA QUEST ANIME LOVER PANIC SCOPE ALPHA BRICK MERCY OUTER SCREW VENUE HABIT NAVAL NOBLE ROBOT TERRY TOXIC WIDER WOUND ASSET BAKER BRUSH ESSAY MAKER SNAKE ULTRA USAGE BOBBY CANAL CLIMB FEVER FLUID NASTY TWIST UNITY BLOWN FENCE STOLE DEALT FLESH FORTY LASER LOYAL PATCH RADAR VILLA ADOPT BLADE CARGO CRIED HUMOR NERVE SANDY SHEEP TRACE CHILL GRAIN LIVER METRO RIFLE RIVAL SADLY SLEPT SPRAY SUITE VERSE BLESS CHUCK COUCH CRUSH GENRE LEASE SHINE TWEET INTER REACT ROCKY SHADE VOCAL YIELD BACON BURST SALAD STAKE SWIFT WELSH AWAKE BLANK CURVE HARSH HURRY MASON ORGAN PEARL SWEAT ALIKE ARROW CABIN EAGLE EATEN GUILT HAVEN THEFT VALVE CHARM CRUEL DELTA RIDGE TRIBE CANON STAMP VOTER WITCH ARRAY BELLY BOOTH CLIFF DERBY FATAL LEMON SHARK DAIRY DIARY DRILL FLIES METER OLIVE SAFER SETUP SKULL SMASH BASIN BRIDE CHICK FAIRY FREAK GRIEF LODGE MERIT REBEL TOOTH VIRAL WIDOW BEARD CURSE DRAIN FLAME INTEL NINTH PENNY PETTY REIGN SCARE SUNNY CHEAT CHEER CHILE DEMON ELDER FIBER FRIED PULSE REALM SHOUT ALTER BRASS GRAPH SHOOK STACK AGING AUDIT DRIED SPITE BURNT BUYER CEASE CLOTH EAGER ELECT LOBBY ORBIT RANCH TRUNK BADGE CAROL FERRY GAUGE RIDER SHELF WIDTH LEGIT LOSER SHEER STARK THUMB WHEAT WRIST ACUTE CIVIC CLERK CRUDE DRONE FLOUR MINUS PAUSE PUPPY SLICE VINYL PROBE SNEAK SPARK STEEP STRAW WEIGH ADAPT DENSE KITTY WHALE AMBER ANKLE ARMOR BERRY CLASH GRASP HANDY MANGA POKER SALLY SCOUT STEAK SWEEP TUMOR CHEEK CURRY DRAKE POLAR SKIRT SPIKE TOAST WAIST WRECK BLEND BRAKE COUGH DEPOT DRANK FEAST FROST PURSE TENSE VEGAN CHESS FLOAT GRIND GROVE HOBBY LANCE LYNCH NEWER RISKY SOBER SPICE SWEPT TOWEL ARISE BLOOM CLOWN CRIES DODGE GUILD PRONE SIEGE SIXTY SONIC SPINE ADMIN CRANE DONOR PASTA RANDY TENTH BATCH PASTE PLAZA STARE BLUNT CHAMP DITCH SCRAP SHAFT SLOPE SNACK STERN STIFF SWORN UNITE VAULT WAGON HOMER MIDST MOMMY ONION ROGUE ABBEY BARON BUNNY CHOIR HOLLY KARMA SHINY SPOON THIEF ALLEY BULLY MARSH MESSY NINJA ROAST SALON VAGUE CORAL DOUGH HARDY IRONY MAPLE RELAY RISEN STUNT YAHOO IVORY NICHE PORCH UTTER CREEP ELBOW EXILE GOOSE GRILL RULER SPERM SPILL SWAMP TASTY URINE CALIF DECAY FLOWN IMPLY MERRY RESET SHAVE VODKA DRIFT HATCH NIECE SCENT SLATE SURGE TOKEN WOODY YACHT FRIES INTRO MANOR PROMO PUPIL SPOIL ALTAR ATLAS COMBO FATTY FLUSH HAIRY OUNCE SEIZE SPICY STING BELLE RAVEN REHAB STALL STRAP BLISS DAISY DISCO FAINT FORGE NOTCH OMEGA QUEUE TROUT BRAVO CRAWL DIGIT FLINT JELLY LUNAR PEACH CEDAR DUNNO HEATH PINCH QUEER ROVER SYRUP DWARF LINER MERGE MORON NAIVE RIGID VIVID BOXER BROOK HEDGE JOKER LADEN RAINY SALTY SERUM SKATE STRAY TEMPO TORCH AROSE BLINK CHILI EXCEL GLOVE GREET OWING PROXY RENEW RUMOR STOKE THIGH TROLL AISLE AMINO BLEED BRACE CHOKE MOTTO ONSET PIXEL PROSE RAZOR STEER AMPLE BINGO CUBIC MACRO SHADY SLACK SLICK STOVE TRACT VISTA VOGUE ADORE CREED CRISP CRUST FLORA GAMMA GRAPE JUICY MOODY PRANK SPEAR SPIES STAIN TIDAL WRATH BLAZE CHALK FLOCK HYPER MOIST RABBI SCOOP SCRUB SHALE TITAN TRAIT TROOP CLONE DROWN JEWEL OBESE PIPER SCARF SUSHI TIMER TYING BORNE DUSTY FOCAL NOISY SNAIL TUTOR VERGE YEAST ERASE MANLY OXIDE PENCE REPAY ROUGE SHOVE BASIL CHORD CREST DECOR FETCH FUZZY NEXUS NICER OPTIC PANDA SLASH STEIN BATON CAMEL CHUNK COCOA COMET DREAD DUMMY FLANK FLARE LEVER PEDAL QUERY SEWER SMACK SONNY SWELL ALIGN ATTIC AWAIT CACHE COMFY CONDO FLICK FUNKY GROOM HOGAN LYRIC PLEAD DEBIT GAMER LOTUS PADDY TALLY WEDGE ALLOY CRANK LINEN MOOSE MOTEL RESIN RUSTY STINT WEARY AGONY BINGE CASTE CHANT COLON CURLY FETUS MOUND MUDDY PRICK ABIDE AVAIL BOOTY MADAM NANNY POPPY TEASE BLUFF FLYER MINER NEEDY PATTY SWIPE TANGO BLITZ CIGAR CIRCA CLOAK DWELL FIERY GIMME GOOFY JOLLY MUMMY PURGE RHINO VENOM WINDY BLUSH FURRY MANGO OASIS ODDLY PAGAN PSALM RHYME SAVVY SPREE VAPOR WITTY WOVEN AMEND BLOND BOWEL CATER DEITY FINCH GYPSY SEDAN SLANG ALGAE DOLLY DRYER ETHIC FLAIR HAUNT HAZEL SLAIN STASH VIOLA YUMMY ADOBE BRAWL QUOTA SALSA SWORE VOMIT WEAVE DENIM ERECT FAUNA FLIRT FLUTE MATTE STOOL TREAD TRUCE UNFIT ALOUD BOAST BRINK COBRA INBOX SIGMA USHER ANNEX BARGE BIRCH BLAND BRIBE CANOE CIDER EQUIP HAVOC HUMID MILKY MIXER PIVOT SUING ARBOR CLING ICING JIHAD LAPSE LOGIN MIMIC MURAL NASAL QUASI CAMEO DETER DINER ENVOY FUNGI GRAVY PSYCH RINSE SCALP SQUAT THORN WHARF WISER CRATE CRAVE FANNY GLOSS GRAFT GUISE LEASH RODEO SHIRE SWUNG TABOO ALIAS ANNOY GRAIL LITER PENAL PLANK PRIVY SIREN SMEAR SNOWY STALK STINK SWINE CLAMP INLET QUAKE RACER RECAP SHAKY STOUT STUMP BERTH MANIA PARRY PATIO PRISM RENAL ROACH SNIFF SQUID SWARM ABBOT ASPEN BLEAK BOGUS DIZZY ENACT HOUND MOURN POUCH SHACK STALE TUMMY WAGER WHACK BROOM BRUTE EATER FROZE HITCH MEDIC NYLON OZONE ROTOR AGILE CARVE CROOK DIVER FILTH GENIE HUBBY LEDGE MOMMA NATAL TORSO ABYSS ARSON BASAL ELVES ETHER FETAL FINER GORGE LATEX MODEM MOTIF PAPAL PERIL SHEAR SNOOP TENOR ZEBRA BROTH COCKY EVADE HEIST MAXIM MISTY PINKY SATIN TONIC TWAIN DITTO GLAND JUMBO MECCA SLIME SPAWN WALTZ BIKER BUTCH HASTE OTTER RELIC REUSE VICAR WELCH WOKEN APRON CARBS EXERT GLARE HEFTY SLUMP AZURE CADET CRAZE GEESE PHONY COUPE EBONY FOLLY ITCHY JUNTA LATCH LIBEL LOFTY MAIZE PICKY REGAL SHALT SHEEN SLEEK SLING ADEPT DOGGY EERIE FARCE FLING FLUNG FUDGE GLIDE PLAID PLUSH SMOKY SPADE VOWEL BUGGY DODGY ETHOS HINGE MAMMA MANIC MELON SYNOD DONUT GLOOM HYDRA LIMBO LOUSY OVERT PIOUS SCUBA THINE VIPER BEIGE BULKY EMERY INCUR LATTE LEAFY PIGGY SHRUG SONAR STONY TAPER TOXIN CELLO DETOX FERAL HASTY HUSKY LIPID PERCH SORTA TRUSS UNDUE WACKY ASSAY FISHY FRAIL GLAZE SINUS STUNG WALDO WHINE BANJO BEECH COMMA DOGMA EVOKE LOWLY LUCID POLIO SAVER SNUCK TWEAK ANGST BISON EXPEL FROWN GODLY GROIN HELIX HOMIE HOVER KNACK MACHO POTTY SILKY STAIR BROOD DANDY LEACH LEFTY QUILT SAUNA SNARE STOMP SUEDE TIMID UNCUT WIDEN BRAID BULGE FORTE KAYAK KNEEL VIGIL WAIVE AROMA BUDGE CLOUT CORNY DROID EMOJI HOARD HORDE LOTTO SHONE SISSY TAKER TRIAD VALOR WIGHT BATHE GIDDY KIDDO NUDGE PAYER SERGE TEMPT WHIFF BLING BONER FLAKE LORRY MOVER ROWDY SASSY TONNE TRAMP WIELD BRISK CUPID DEFER DRIES FLASK FLUFF GNOME LUPUS LYMPH PALSY POLKA REPEL SKIER SWOOP WHOOP AMAZE CHUTE DRIER EPOCH FOGGY LEMME MAGMA NUTTY PLUME PLUMP SHRUB STEAD BAGEL BIGOT BUMPY CODEX FACET FIRTH FLOSS LOCUS POSSE SABER SAMBA SLANT SPELT TACKY TULIP FELON GRATE HILLY LEECH MADLY NERDY NIFTY SHAWL VALET BAGGY FABLE GABBY INFER LAGER STRUT SWIRL THETA THONG AWOKE AXIAL CARAT CHORE CREPT CURVY FILLY GRUNT MUCUS PIXIE SEVER SNUFF STOIC TASER AVERT AVIAN BAYOU CHIME DELVE FLUKE GROWL HATER PASHA SOGGY STOOP ABODE DOWRY HAREM HIPPO INEPT JUROR MODAL PLUCK PUFFY QUAIL QUIRK RABID SCORN VOUCH WAFER AMUSE APTLY BRUNT GROAN HOIST MURKY PATSY PINTO SMURF TAROT FOLIO FRANC GULLY LILAC PADRE QUILL REVEL ROWER SPIRE SPOUT SULLY WHISK ALIBI CLASP CRYPT EDICT EPOXY FIEND JERKY MOWER PESKY ROUSE SCANT SHEIK SKUNK SLOTH SPOOF TROPE ALOHA BUTTE FOYER GRIME HERON INERT PIETY REMIT TONAL TOTEM ACORN ALOFT BESET BLEEP GABLE HAIKU HOWDY MUNCH SLIMY SNOUT SPANK SPIED TUNIC BRINE CHURN HUNCH LONER MOGUL NOMAD PUBIC REVUE RIGOR SHANK THYME TONER UNIFY UPPED AEGIS ASCOT DIODE ESTER HERTZ LEAKY QUACK BOSOM LEAPT QUARK RARER TEENY ANVIL CABAL CADRE CRAMP DECOY DROOL FIXER FORAY FRIAR FUSSY GOODY HUTCH JETTY KHAKI KOALA PETAL POISE RUPEE SMIRK SNIPE STAVE SWAMI WINCH AMOUR CROCK ERODE KEBAB SCION ULCER VIGOR AXIOM CHINO GRAZE MINCE MORAY NACHO SABRE SPECK ADORN CUMIN DECAL FECAL LINGO MEATY QUART RUDDY SAHIB SNORT BOWER COVEN DUCHY FEMUR GUSTO HIPPY JAZZY KIOSK PUSHY QUELL ROOST SHARD SIEVE SPORE SWAIN TENET ABACK ALOOF DRUID DUVET EJECT FORGO FREER FRYER LARGO LARVA LIVID MOLAR RAYON SABLE SLUSH SMELT BOOBY BUSHY CLUNG MOCHA NOOSE PARSE SAVOR TAINT TIARA VISOR ALDER BOSSY CRUMB EMBER ERUPT EVICT GLEAM GUMMY IDIOM PANTY POOCH SCOUR TALON THUMP TRUER YEARN CADDY CHASM CRASS PRUNE TAUNT WHIRL ADAGE BRASH CHIMP EDEMA FLACK LIEGE LLAMA NAVEL PERKY STEED CHEWY CLEFT CLUMP DEUCE EMBED GEEKY MUSHY OVARY RUNNY SAITH SENNA TACIT VIXEN WREAK XVIII AMISS CUTER HEADY HOTLY PECAN PIQUE SHOAL SMITE TWINE TWINK XXIII AORTA BERET BOGEY BORON BUGLE FLIER FRISK GIRTH PLUMB VYING BABEL BERYL CHUMP CLOVE ENSUE GECKO LATHE REEVE SPILT TUNER GAUNT HEAVE KNOLL MULCH RERUN SAUCY SERVO SUAVE TIBIA XENON AFOOT AMITY ARTSY CANNY GAUZE GHOUL PUTTY RADON SWISH WHINY BANAL CURIE FROCK MAVEN NAPPY PASTY RISER SPOOK STORK SWOON TITHE BIMBO BONGO CAIRN CREPE FLAKY GAMUT NYMPH PALER PRAWN PUREE TIPSY TOPAZ AMIGO ANODE ARGON ATONE BRIAR CACAO CAPER CHOCK COMER DEBUG GOOEY LUPIN MUFTI NADIR SALVO ATOLL ENEMA GULAG INSET LUNGE SLUNG SURLY VERVE BONNY HENNA LUMPY NEATH OLDEN SPOOL SPURT TEARY WONKY ADIEU BEBOP DUSKY GAUDY GROUT MUSTY SEEDY SLEET SPASM SWATH TINGE BURLY COVET DINGY FIZZY GOURD JELLO SHUNT STENT AGATE ASTER CANTO CYNIC FAKER FJORD FLUME GRIPE GRUFF SALVE SCALY SCOLD WIPER CRICK FILET GONZO HYENA KNELT LUSTY MANNA PEASE PEEVE PRONG SLOOP TRITE ALLOT BATTY BLURB CHIRP CONCH DIMLY LEPER LEVEE LURCH SCOOT SHOWY SPATE TABBY AURAL BLIMP DALLY ELUDE GLADE GULCH HIKER IRATE LOONY MAMBO SCOFF SEPIA AMASS AUGER CREDO LAPEL PANSY TAWNY AWASH BRAWN GRIMY ISLET LAITY MIDGE PARKA POSIT";
+        const EXTRA =
+          "AALII ABACA ABACI ABAFT ABAMP ABASE ABASH ABATE ABEAM ABELE ABETS ABHOR ABIES ABLER ABMHO ABOHM ABOUT ABOVE ABUTS ABUZZ ABYSM ACARI ACCEL ACERB ACHED ACHES ACHOO ACIDS ACING ACINI ACMES ACNED ACRED ACRES ACRID ACTED ACTIN ADDAX ADDED ADDER ADDLE ADITS ADMAN ADMEN ADMIX ADOWN ADUST ADZES AECIA AEDES AEONS AERIE AERON AFFIX AFIRE AFORE AFOUL AFRIT AFTER AGAIN AGAMA AGAPE AGAVE AGGER AGGIE AGGRO AGIOS AGISM AGIST AGITA AGLET AGLEY AGLOW AGONE AGORA AGRIC AGRON AIDED AIDER AIDES AILED AIMED AIRED AIRTS AITCH AKEES AKENE ALACK ALARY ALATE ALDOL ALEPH ALGAL ALGID ALGIN ALGOR ALINE ALIYA ALKYD ALKYL ALLAY ALLYL ALOES ALOIN ALTHO ALTOS ALULA ALUMS AMAHS AMAIN AMBIT AMBLE AMBOS AMBRY AMEBA AMEER AMENT AMICE AMIDE AMINE AMIRS AMNIA AMNIO AMPLY AMPUL AMUCK ANCON ANEAR ANELE ANENT ANILE ANILS ANIMA ANION ANISE ANKHS ANKUS ANNAL ANNAS ANNUL ANOAS ANOLE ANOMY ANONS ANTED ANTES ANTIC ANTIQ ANTIS ANTRE ANTSY APACE APEAK APERY APHID APHIS APIAN APING APISH APNEA APORT APPAL APPEL APSES APSIS APTER AQUAE AQUAS ARAKS ARCED ARCHT ARDEB ARDOR AREAL AREAS ARECA ARGAL ARGIL ARGOL ARGOT ARIAS ARIEL ARILS ARMED ARMET AROID ARRAS ARRIS ARSED ARSIS ARTEL ARUMS ASCUS ASDIC ASHED ASHEN ASHES ASKED ASKER ASKEW ASPER ASPIC ASSAI ASSES ASSOC ASTIR ATILT ATMAN ATOMS ATOMY ATONY ATRIA ATRIP ATTAR AUGHT AUGUR AULIC AULOS AUNTS AUNTY AURAE AURAR AURAS AURIC AURUM AUTOS AUXIN AVAST AVENS AVERS AVION AVOIR AVOWS AWING AWNED AXILS AXING AXLES AXONS AYAHS AYINS AZIDE AZINE AZOIC AZOLE AZOTE AZOTH BAAED BABAS BABES BABUL BACCY BACKS BADDY BAHTS BAILS BAIRN BAITS BAIZA BAIZE BAKED BAKES BALAS BALDS BALDY BALED BALER BALES BALKS BALKY BALLS BALLY BALMS BALMY BALSA BANDS BANDY BANES BANGS BANKS BANNS BARBS BARDE BARDS BARED BARER BARES BARFS BARIC BARIT BARKS BARMS BARMY BARNS BARRE BARYE BASED BASER BASES BASKS BASSI BASSO BASTE BATED BATES BATHS BATIK BAUDS BAWDS BAWDY BAWLS BAYED BAZAR BEADS BEADY BEAKS BEAMS BEAMY BEANO BEANS BEARS BEATS BEAUS BEAUT BEAUX BECKS BEDEL BEDEW BEDIM BEEFS BEEFY BEEPS BEERS BEERY BEETS BEFIT BEFOG BEGAT BEGET BEGOT BEGUM BEING BELAY BELCH BELGA BELIE BELLS BELTS BEMAS BENDS BENDY BENNE BENNY BENTS BERGS BERKS BERMS BESOM BESOT BESTS BETAS BETEL BETHS BETTA BEVEL BEVVY BEZEL BHAJI BHANG BIALY BICEP BIDDY BIDED BIDES BIDET BIELD BIERS BIFFS BIFID BIGHT BIJOU BIKED BIKES BILBO BILGE BILKS BILLS BIMAH BINAL BINDS BINES BIOME BIOTA BIPED BIPOD BIRDS BIRLS BIRRS BISES BITER BITES BITTS BITTY BLABS BLAGS BLAHS BLAIN BLARE BLATE BLATS BLEAR BLEAT BLEBS BLENT BLEST BLINI BLIPS BLOAT BLOBS BLOCS BLOGS BLOKE BLOOP BLOTS BLOWS BLOWY BLUBS BLUED BLUER BLUES BLUET BLUEY BLURS BLURT BOARS BOART BOATS BOCCE BOCCI BODED BODES BODGE BOFFO BOGGY BOGIE BOGLE BOGON BOILS BOINK BOLAS BOLES BOLLS BOLOS BOLTS BOLUS BOMBE BONCE BONDS BONED BONES BONEY BONGS BONKS BONNE BONZE BOOED BOOKS BOOMS BOONG BOONS BOORS BOOTS BOOZY BORAK BORAX BORED BORER BORES BORIC BOSKY BOSON BOSUN BOTCH BOTEL BOTHY BOUGH BOULE BOURN BOUSE BOUTS BOVID BOWED BOWLS BOWSE BOXED BOXEN BOXES BOYAR BOYLA BOZOS BRACH BRACT BRADS BRAES BRAGS BRAIL BRANT BRATS BRAXY BRAYS BRAZE BREAM BREDE BREED BRENT BREVE BREWS BRIER BRIGS BRILL BRIMS BRINY BRITS BROCH BROCK BROIL BRONC BROSE BROWS BRUIN BRUIT BRUME BRUSK BUBAL BUBBA BUCKO BUCKS BUENO BUFFO BUFFS BUHLS BULBS BULGY BULKS BULLA BULLS BUMPH BUMPS BUNCO BUNGS BUNKO BUNKS BUNTS BUOYS BURAN BURBS BURET BURGH BURGS BURIN BURKA BURKE BURLS BURNS BURPS BURRO BURRS BURRY BURSA BURSE BUSBY BUSED BUSES BUSKS BUSTS BUSTY BUTEO BUTTS BUTTY BUTUT BUTYL BUXOM BWANA BYLAW BYRES BYTES BYWAY CABBY CABER CABOB CACTI CADGE CAECA CAFFS CAGED CAGER CAGES CAGEY CAIRD CAKED CAKES CAKEY CALFS CALIX CALKS CALLA CALLS CALMS CALVE CALYX CAMPO CAMPS CAMPY CANED CANER CANES CANNA CANSO CANST CANTS CANTY CAPED CAPES CAPON CAPOS CAPUT CARDS CARED CARER CARES CARET CARKS CARNY CAROB CAROM CARPI CARPS CARSE CARTE CARTS CASED CASES CASKS CASTS CATTY CAUDA CAULK CAULS CAVED CAVER CAVES CAVIE CAVIL CAWED CECAL CECUM CEDED CEDER CEDES CEDIS CEIBA CELEB CELLA CELLI CELLS CELOM CENSE CENTO CENTS CEORL CERED CERES CERIA CERIC CEROS CERTS CESAR CESTA CHADS CHAFE CHAFF CHAPE CHAPS CHAPT CHARD CHARE CHARR CHARS CHARY CHATS CHAWS CHEEP CHEFS CHELA CHEMO CHERT CHEVY CHEWS CHIAO CHICO CHIDE CHIMB CHINE CHING CHINK CHINS CHIPS CHIRK CHIRM CHIRR CHITS CHIVE CHIVY CHOCS CHOLI CHOMP CHOOK CHOPS CHOWS CHRON CHUBS CHUFA CHUFF CHUGS CHUMS CHURL CHURR CHYLE CHYME CIAOS CILIA CIMEX CINCH CIRRI CISCO CITED CITES CIVET CLACK CLADE CLAMS CLANG CLANK CLANS CLAPS CLARO CLARY CLAVE CLAVI CLAWS CLAYS CLEAT CLEEK CLEFS CLEPE CLEWS CLIME CLINE CLINK CLIPS CLIPT CLITS CLODS CLOGS CLOMB CLOMP CLONK CLOPS CLOTS CLOYS CLUBS CLUCK CLUED CLUES CLUNK CLVII CLXII CLXIV CLXIX CLXVI COACT COALS COALY COATI COATS COBIA COBLE COCCI COCKS COCOS CODAS CODED CODER CODES CODON COEDS COGON COHOS COIFS COIGN COILS COINS COIRS COKED COKES COLAS COLDS COLES COLEY COLIC COLLY COLTS COLZA COMAS COMBE COMBS COMDG COMES COMPO COMPS CONED CONES CONEY CONGA CONIC CONKS CONNS CONTD CONTE CONTO CONTR COOED COOEE COOKS COOKY COOLS COOMB COONS COOPS COOTS COPAL COPAY COPED COPER COPES COPRA COPSE CORDS CORED CORER CORES CORGI CORIA CORKS CORKY CORMS CORNS CORNU CORPS CORSE COSEC COSET COSTA COSTE COSTS COTES COTTA COULD COUPS COUTH COVES COVEY COVIN COWED COWER COWLS COWRY COXAE COXED COXES COYER COYLY COYPU COZEN CRAAL CRABS CRAGS CRAKE CRAMS CRAPE CRAPS CRAPY CRAWS CRAYS CREAK CREEL CREME CRESS CREWS CRIBS CRIER CRIMP CRINE CROAK CROCI CROFT CRONE CRONK CRONY CROON CROPS CRORE CROUP CROWS CROZE CRUCK CRUET CRUFT CRUMP CRUSE CRWTH CRYER CRYST CUBBY CUBEB CUBED CUBER CUBES CUBIT CUDDY CUFFS CUING CUKES CULCH CULET CULEX CULLS CULLY CULMS CULPA CULTS CUNTS CUPEL CUPPA CURBS CURCH CURDS CURDY CURED CURER CURES CURET CURIA CURIO CURLS CURST CUSEC CUSHY CUSKS CUSPS CUTCH CUTEY CUTIE CUTIN CUTIS CUTTY CUTUP CYCAD CYLIX CYMAR CYMAS CYMES CYSTS CYTON CZARS DACES DACHA DADAS DADOS DAFFY DAGOS DAHLS DALES DAMAN DAMAR DAMES DAMNS DAMPS DANGS DANIO DARED DARER DARES DARIC DARKY DARNS DARTS DATED DATER DATES DATUM DAUBE DAUBS DAUNT DAVIT DAWNS DAZED DAZES DDING DEALS DEANS DEARS DEARY DEBAG DEBAR DEBTS DEBUS DECAF DECKS DECRY DEDAL DEEDS DEEMS DEEPS DEERS DEFOG DEGAS DEICE DEIFY DEIGN DEISM DEIST DEKKO DELFT DELIS DELLS DEMIT DEMOB DEMOS DEMUR DENAR DENOM DENTS DERIV DERMA DERRY DESEX DESKS DEWAN DHOBI DHOLE DHOTI DHOWS DIALS DIAZO DICED DICER DICES DICEY DICKS DICKY DICOT DICTA DIDOS DIDST DIETS DIFFS DIGHT DIKED DIKES DILLS DILLY DIMER DIMES DINAR DINED DINES DINGE DINGO DINGS DINKY DINTS DIPPY DIPSO DIRER DIRGE DIRKS DISCS DISHY DISKS DISTR DITSY DITTY DITZY DIVAN DIVAS DIVED DIVES DIVOT DIVVY DIWAN DIXIE DIZEN DJINN DOBBY DOBLA DOBRA DOBRO DOCKS DODOS DOERS DOFFS DOGES DOGGO DOGIE DOILY DOING DOLCE DOLED DOLES DOLLS DOLOR DOLTS DOMED DOMES DONAS DONEE DONGA DONGS DONNA DOOMS DOORS DOOZY DOPED DOPER DOPES DOPEY DORKS DORKY DORMS DORTY DOSED DOSES DOTED DOTER DOTES DOTTY DOUCE DOUMA DOUSE DOVES DOWDY DOWEL DOWER DOWIE DOWNS DOWNY DOWSE DOYEN DOZED DOZER DOZES DRABS DRAFF DRAGS DRAMS DRAPE DRAWL DRAWS DRAYS DREAR DREGS DRILY DRIPS DROIT DROLL DROOP DROPS DROSS DRUBS DRUMS DRUPE DRUSE DRYAD DRYLY DUADS DUALS DUCAL DUCAT DUCKS DUCKY DUCTS DUDED DUDES DUELS DUETS DUFFS DUKES DULIA DULLS DULLY DULSE DUMBO DUMPS DUMPY DUNCE DUNES DUNGS DUNKS DUOMO DUPED DUPER DUPES DUPLE DUPPY DURRA DURST DURUM DUSTS DUTCH DWEEB DWELT DYADS DYERS DYKED DYKES DYNES EAGRE EARED EARLS EARNS EASED EASEL EASES EAVES EBBED ECHOS EDGED EDGER EDGES EDIFY EDILE EDITS EDUCE EDUCT EFFED EGADS EGEST EGGED EGGER EGRET EIDER EIDOS EIKON EKING ELAND ELATE ELEGY ELEMI ELFIN ELIDE ELOPE ELUTE ELVER EMBAY EMBOW EMBUS EMCEE EMEND EMIRS EMITS EMMER EMMET EMOTE ENATE ENDED ENDOW ENDUE ENGIN ENNUI ENROL ENURE ENVOI EOSIN EPACT EPHAH EPHOD EPHOR EPICS EPODE EQUIV ERGOT ERNES EROSE ERRED ERUCT ERUGO ESKER ESTOP ETHYL ETNAS EUROS EVENS EVERT EVERY EVILS EVITE EWERS EXALT EXAMS EXEAT EXECS EXINE EXITS EXONS EXPAT EXPOS EXTOL EXUDE EXULT EXURB EYING EYRAS EYRIR FACED FACER FACES FACIA FACTS FADDY FADED FADER FADES FADGE FAENA FAERY FAFFS FAGOT FAILS FAIRS FAKED FAKES FAKIR FALLS FAMED FANGO FANGS FANON FAQIR FARAD FARCI FARCY FARED FARER FARES FARMS FARTS FASTS FATED FATES FATLY FATSO FATWA FAUGH FAUNS FAUVE FAVES FAVUS FAWNS FAXED FAXES FAYER FAZED FAZES FEARS FEATS FEAZE FECES FECIT FEEDS FEELS FEEZE FEIGN FEINT FELID FELLA FELLS FELLY FELTS FEMME FENDS FENNY FEOFF FERIA FERMI FERNS FERNY FESTS FETED FETID FETOR FEUAR FEUDS FEYLY FEZES FIATS FICHE FICHU FICUS FIDGE FIEFS FIFER FIFES FILAR FILCH FILED FILER FILES FILLS FILMS FILMY FILUM FINDS FINED FINES FINIS FINKS FINNY FIORD FIRED FIRER FIRES FIRMS FIRRY FISCS FISTS FITCH FITLY FIVER FIVES FIXED FIXES FJELD FLAGS FLAIL FLANS FLAPS FLATS FLAWS FLAWY FLAYS FLEAM FLEAS FLECK FLEER FLEES FLEWS FLIED FLIPS FLITE FLITS FLOCS FLOES FLOGS FLONG FLOPS FLORY FLOUT FLOWS FLUBS FLUES FLUKY FLUMP FLUNK FLUOR FLUTY FLYBY FLYTE FOALS FOAMS FOAMY FOEHN FOGEY FOILS FOIST FOLDS FOLIA FOLIC FOLIE FOLKS FONDU FONTS FOODS FOOLS FOOTS FOOTY FORBY FORDO FORDS FORES FORKS FORME FORMS FORTS FOSSA FOSSE FOULS FOUNT FOURS FOVEA FOWLS FOXED FOXES FRACK FRAGS FRAPS FRATS FRAYS FREED FREES FREMD FRENA FRETS FRIER FRIGS FRILL FRITH FRITZ FRIZE FRIZZ FROGS FROND FRONS FRORE FROSH FROTH FRUMP FUBSY FUCKS FUCUS FUELS FUGAL FUGGY FUGUE FULLS FUMED FUMES FUNDS FUNGO FUNKS FURAN FURLS FUROR FURZE FURZY FUSED FUSEE FUSES FUSIL FUSTY FUTON FUZED FUZEE FUZES GADID GAFFE GAFFS GAGED GAGES GAILY GAINS GAITS GALAH GALAS GALEA GALES GALLS GALOP GAMBA GAMED GAMES GAMEY GAMIC GAMIN GAMMY GAMPS GANEF GANGS GANJA GANOF GAPED GAPES GAPPY GARBS GARTH GASES GASPS GASSY GATED GATER GATES GATOR GAUDS GAURS GAUSS GAUZY GAVEL GAWKS GAWKY GAWPS GAYER GAYLY GAZED GAZER GAZES GEANS GEARS GEEKS GEEST GELDS GELID GELTS GEMMA GEMMY GEMOT GENES GENET GENIC GENII GENIP GENIT GENOA GENRO GENTS GENUS GEODE GEOID GERAH GERMS GERMY GESSO GETUP GHATS GHAZI GHEES GHYLL GIBED GIBER GIBES GIFTS GIGOT GIGUE GILDS GILLS GILTS GIMEL GIMPS GIMPY GINNY GIPON GIPSY GIRDS GIRLS GIRLY GIROS GIRTS GISMO GITES GIVER GIVES GIZMO GLADS GLAIR GLANS GLARY GLEAN GLEBE GLEDE GLEET GLENS GLIAS GLINT GLITZ GLOAM GLOAT GLOBS GLOMS GLOWS GLOZE GLUED GLUES GLUEY GLUME GLUON GLUTS GLYPH GNARL GNASH GNATS GNAWN GNAWS GOADS GOALS GOATS GOERS GOFER GOLDS GOLEM GOLFS GOLLY GONAD GONER GONGS GONIF GONKS GOODS GOOFS GOOKS GOONS GOOSY GOPAK GORAL GORED GORES GORPS GORSE GOTHS GOUGE GOUTY GOWAN GOWNS GOYIM GRABS GRADS GRAMS GRANS GRAYS GREBE GREED GREPS GREYS GRIDE GRIDS GRIFT GRINS GRIPS GRIST GRITH GRITS GROAT GROKS GROPE GROSZ GROTS GROWS GRUBS GRUEL GRUES GRUME GRUMP GUACO GUANO GUANS GUARS GUAVA GUCKS GUILE GULAS GULES GULFS GULLS GULPS GUMBO GUMMA GUNGE GUNGY GUNKY GUNNY GUPPY GURGE GURUS GUSHY GUSSY GUSTS GUSTY GUTSY GUTTA GUTTY GUYED GUYOT GYBED GYBES GYRAL GYRES GYRON GYROS GYRUS GYVED GYVES HACEK HACKS HADES HADJI HADST HAFIZ HAFTS HAILS HAIRS HAJES HAJIS HAJJI HAKES HAKIM HALAL HALED HALER HALES HALLO HALLS HALMS HALON HALOS HALTS HALVE HAMAL HAMES HAMMY HAMZA HANCE HANDS HANGS HANKS HANKY HAOLE HAPLY HARDS HARED HARES HARKS HARMS HARPS HARPY HARTS HASPS HATED HATES HAUGH HAULM HAULS HAVER HAVES HAWED HAWKS HAWSE HAYED HAZAN HAZED HAZER HAZES HDQRS HEADS HEALS HEAPS HEARS HEATS HEDER HEEDS HEELS HEFTS HEIRS HELLS HELMS HELOT HELPS HELVE HEMAL HEMIC HEMIN HENGE HENRY HERBS HERBY HERDS HERES HEROS HETHS HEWED HEWER HEXAD HEXED HEXER HEXES HEXYL HICKS HIDED HIDER HIDES HIGHS HIGHT HIJAB HIKED HIKES HILLS HILTS HILUM HINDS HINGS HINNY HINTS HIRED HIRER HIRES HIVED HIVES HOAGY HOARS HOARY HOBOS HOCKS HOCUS HOERS HOICK HOKED HOKES HOKEY HOKKU HOKUM HOLDS HOLED HOLES HOLEY HOLLO HOMED HOMES HOMEY HOMOS HONED HONER HONES HONKS HONKY HOOCH HOODS HOOEY HOOFS HOOKA HOOKS HOOKY HOOPS HOOTS HOPED HOPES HORAH HORAL HORAS HORME HORNS HOROL HORST HORSY HOSED HOSES HOSTA HOSTS HOUGH HOURI HOURS HOVEL HOWLS HUFFS HUFFY HUGER HULAS HULKS HULKY HULLS HUMIC HUMPH HUMPS HUMPY HUMUS HUNKS HUNKY HUNTS HURDS HURLS HURST HURTS HUSKS HUSSY HUZZA HYDRO HYING HYMEN HYMNS HYOID HYPED HYPES HYPHA HYPOS HYRAX HYSON IAMBI IAMBS ICHOR ICIER ICILY ICONS ICTUS IDEAS IDLED IDLER IDLES IDOLS IDYLL IDYLS IGLOO IHRAM IKONS ILEAC ILEAL ILEUM ILEUS ILIAC ILIUM ILLUS IMAGO IMAMS IMBED IMBUE IMIDE IMINE IMMIX IMPEL IMPER INANE INAPT INCED INCUS INDEF INDIC INDIE INDUC INDUE INFIN INFIX INFRA INGLE INGOT INION INKED INKLE INLAY INNIT INORG INSTR INTIS INURE INURN IOCTL IODIC IONIC IOTAS IRADE IRKED IRONS IRREG ISLES ISSEI ISTLE ITEMS IVIED IVIES IXTLE IZARD JABOT JACAL JACKS JADED JADES JAGGY JAILS JAKES JALAP JAMBS JAMMY JAPED JAPER JAPES JATOS JAUNT JAWED JEANS JEBEL JEEPS JEERS JEHAD JELLS JEMMY JENNY JERID JERKS JERRY JESTS JIBED JIBES JIFFS JIFFY JILTS JINGO JINKS JINNI JINNS JIVED JIVER JIVES JIVEY JOCKO JOCKS JOEYS JOHNS JOINS JOIST JOKED JOKES JOKEY JOLTS JOLTY JORUM JOULE JOUST JOWLS JOWLY JOYED JUGAL JUGUM JUJUS JULEP JUMPS JUMPY JUNCO JUNKS JUNKY JUNTO JUPON JURAL JURAT JUREL JUTTY KABOB KAFIR KAIAK KAILS KAKIS KALIF KALIS KALPA KANJI KANZU KAONS KAPHS KAPOK KAPPA KAPUT KARAT KARST KARTS KASHA KAURI KAVAS KAYOS KAZOO KEBOB KEDGE KEELS KEENS KEEPS KELLY KENAF KENDO KENTE KEPIS KERNE KETCH KEVEL KEYED KHANS KHEDA KHOUM KIANG KIBES KICKS KICKY KIDDY KIKES KILNS KILOS KILTS KINAS KINDS KINES KINGS KININ KINKS KINOS KITED KITES KIWIS KLONG KLOOF KLUGE KLUTZ KNAPS KNAVE KNEAD KNEED KNEES KNELL KNISH KNITS KNOBS KNOTS KNOUT KNOWS KNURL KOANS KOBOS KOHLS KOINE KOLAS KOOKS KOOKY KOPEK KOPJE KORMA KOSES KOTOS KRAAL KRAFT KRAIT KRAUT KRILL KRONE KROON KUDOS KUDUS KUDZU KUKRI KULAK KURUS KVASS KYATS KYLES KYLIX LABIA LACED LACER LACES LACKS LADED LADES LADLE LAGAN LAIRD LAIRS LAKER LAKES LAKHS LAMAS LAMBS LAMED LAMER LAMES LAMIA LAMPS LANAI LANDS LANES LANKY LAPIN LARCH LARDS LARDY LARES LARKS LARUM LASED LASES LASSO LASTS LATED LATHI LATHS LATHY LATKE LAUDS LAVAS LAVED LAVER LAVES LAWNS LAXER LAXLY LAYUP LAZAR LAZED LAZES LEADS LEAFS LEAKS LEANS LEAPS LEEKS LEERS LEERY LEFTS LEGES LEGGY LEMAN LEMMA LEMUR LENDS LENIS LENTO LEONE LEPTA LETHE LETUP LEVIN LEVIS LEWIS LEXER LEXIS LIANA LIARD LIARS LIBER LIBRA LICHI LICIT LICKS LIDOS LIENS LIFER LIFTS LIGAN LIGER LIKED LIKEN LIKER LIKES LILOS LILTS LIMBS LIMED LIMEN LIMES LIMEY LIMNS LIMOS LIMPS LINDY LINED LINES LINGS LININ LINKS LINTS LINTY LIONS LIPPY LIRAS LISLE LISPS LISTS LITAS LITHE LITHO LIVED LIVEN LIVES LIVRE LLANO LOACH LOADS LOAFS LOAMS LOAMY LOANS LOATH LOBAR LOBED LOBES LOCKS LOCOS LOCUM LODEN LODES LOESS LOFTS LOGAN LOGES LOGGY LOGIA LOGON LOGOS LOINS LOLLS LOLLY LONGE LONGS LOOBY LOOFA LOOKS LOOMS LOONS LOOPS LOOPY LOOTS LOPED LOPER LOPES LOPPY LORAN LORDS LORIS LOSEL LOSES LOTAS LOTIC LOUGH LOUIS LOUPE LOURS LOUSE LOUTS LOVED LOVES LOVEY LOWED LOXES LUAUS LUBED LUBES LUBRA LUCKS LUCRE LUDIC LUFFA LUFFS LUGED LUGES LULLS LULUS LUMEN LUMPS LUNGI LUNGS LURED LURES LUREX LURGY LURID LURKS LUSHY LUSTS LUTES LUXES LWEIS LXVII LYRES LYSES LYSIN LYSIS LYSSA LYTIC LYTTA MACAW MACED MACES MACKS MACLE MAFIA MAGES MAGUS MAIDS MAILS MAIMS MAINS MAKES MAKOS MALAR MALES MALLS MALTS MALTY MAMAS MAMBA MAMEY MAMMY MANAS MANAT MANED MANES MANGE MANGY MANKY MANSE MANTA MANUF MARAS MARCS MARES MARGE MARKA MARKS MARLS MARLY MARTS MASER MASKS MASSY MASTS MATED MATER MATES MATEY MATIN MATTS MATZO MAULS MAUND MAUVE MAVIN MAVIS MAXED MAXES MAXIS MAYST MAZER MAZES MEALS MEALY MEANS MEANY MEATS MEETS MEINY MELDS MELIC MELTS MEMES MEMOS MENAD MENDS MENUS MEOWS MERES MERLE MESAS MESIC MESNE MESON METED METES METHS METIC METIS MEWED MEWLS MEZZO MIAOW MICKS MICRA MICRO MIDDY MIDIS MIENS MIFFS MIFFY MIGHT MIKED MIKES MIKVA MILCH MILER MILES MILFS MILIA MILIT MILKS MILLS MILOS MILTS MIMED MIMER MIMES MINAS MINDS MINED MINES MINGY MINIM MINIS MINKE MINKS MINTS MINTY MIRED MIRES MIRIN MIRTH MIRZA MISDO MISER MISSY MISTS MITER MITES MITIS MITTS MIXED MIXES MIXUP MIZEN MNEME MOANS MOATS MOCKS MODES MOGGY MOHUR MOILS MOIRE MOKES MOLAL MOLAS MOLDS MOLDY MOLES MOLLS MOLLY MOLTS MONAD MONAS MONDE MONGO MONKS MONTE MOOCH MOODS MOOED MOONS MOONY MOORS MOOTS MOPED MOPER MOPES MOPEY MOREL MORES MORNS MORPH MORSE MOSEY MOSSY MOTES MOTET MOTHS MOTHY MOTTE MOUES MOUSY MOVED MOVES MOWED MOXIE MUCIN MUCKS MUCKY MUCOR MUCRO MUDRA MUFFS MUGGY MUJIK MULCT MULES MULEY MULLA MULLS MUMPS MUNGS MUONS MUREX MURKS MURRE MUSED MUSER MUSES MUSKY MUSSY MUSTH MUSTS MUTED MUTER MUTES MUTTS MUZAK MUZZY MYALL MYCOL MYNAH MYNAS MYRRH MYTHS NAANS NABOB NACRE NAEVI NAIAD NAIFS NAILS NAIRA NAKER NAKFA NAMED NAMER NAMES NANCE NANCY NAPES NAPPE NARCS NARDS NARES NARIS NARKS NARKY NATCH NATES NATTY NAVAR NAVES NAVIG NAVVY NAWAB NEAPS NEARS NECKS NEEDS NEGUS NEIGH NELLY NEPER NERAL NERDS NERVY NESTS NETTY NEUME NEVUS NEWEL NEWSY NEWTS NGWEE NICKS NIDUS NIFFY NIHIL NIMBI NIMBY NINES NINNY NINON NIPAS NIPPY NISEI NISUS NITER NITES NITID NITRO NITTY NIVAL NIXED NIXES NOBBY NOBLY NOCKS NODAL NODDY NODES NODUS NOELS NOHOW NOMEN NONCE NONES NONET NOOKS NOOKY NOONS NORIA NORMS NOSED NOSES NOSEY NOTED NOTES NOTUM NOUNS NOVAE NOVAS NOWAY NUBBY NUDER NUKED NUKES NULLS NUMBS NUMEN NUMIS NYALA OAKEN OAKUM OARED OASES OASTS OATEN OATHS OBEAH OBELI OBEYS OBITS OBJET OBOES OBOLI OCCAS OCHER OCHRE OCKER OCREA OCTAD OCTAL OCTAN OCTET OCULI ODDER ODEON ODEUM ODIUM ODORS OFFAL OFFED OGEED OGHAM OGIVE OGLED OGLER OGLES OGRES OHMIC OILED OILER OINKS OKAPI OKAYS OKRAS OLDIE OLEIC OLEIN OLEUM OLLAS OLOGY OMASA OMBER OMENS OMITS ONTIC OOHED OOMPH OOTID OOZED OOZES OPAHS OPALS OPENS OPINE OPING OPTED ORALS ORANG ORATE ORCAS OREAD ORIEL ORLOP ORNIS ORRIS OSIER OSMIC OTHER OTTAR OUPHE OUSEL OUSTS OUTDO OUTED OUTGO OUTTA OUZEL OUZOS OVALS OVATE OVENS OVERS OVINE OVOID OVOLO OVULE OWLET OWNED OXBOW OXIME PACED PACER PACES PACEY PACHA PACKS PACTS PAEAN PAEON PAGED PAGER PAGES PAILS PAINS PAIRS PAISA PALED PALEO PALES PALLS PALLY PALMS PALMY PAMPA PANED PANES PANGA PANGS PANNE PANTO PANTS PAPAS PAPAW PAPPY PARAS PARCH PARED PARER PARES PAREU PARKS PARKY PAROL PARRS PARTS PARVE PASHM PASTS PATEN PATES PATHS PATIN PATLY PAVAN PAVED PAVES PAVID PAVIS PAWED PAWLS PAWNS PAXES PAYED PAYEE PEAGS PEAKS PEAKY PEALS PEANS PEARS PEART PEATY PEBAS PECKS PEEKS PEELS PEENS PEEPS PEERS PEKAN PEKES PEKOE PELTS PENDS PENES PENNA PENNE PENNI PEONS PEONY PEPPY PERDU PERIS PERKS PERMS PERRY PERSE PERVS PESOS PESTO PESTS PESTY PETIT PEWEE PEWIT PHAGE PHEON PHIAL PHISH PHLOX PHONS PHOTS PHREN PHYLA PHYLE PICKS PICOT PICUL PIERS PIGMY PIING PIKAS PIKED PIKER PIKES PILAF PILAU PILAW PILCH PILED PILEI PILES PILLS PIMPS PINED PINES PINEY PINGS PINKO PINKS PINNA PINNY PINTA PINTS PINUP PIONS PIPED PIPES PIPET PIPIT PIROG PISTE PITAS PITHS PITHY PITON PITTA PLAGE PLAIT PLANS PLASH PLASM PLATS PLATY PLAYA PLAYS PLEAS PLEAT PLEBE PLEBS PLENA PLICA PLIED PLIER PLIES PLOCE PLODS PLONK PLOPS PLOTS PLOWS PLOYS PLUGS PLUMS PLUMY PLUNK POACH POCKS POCKY PODDY PODGY PODIA POEMS POESY POETS POGEY POGGE POILU POKED POKES POKEY POLED POLER POLES POLIS POLIT POLLS POLYP POLYS POMES POMMY PONCE PONCY PONDS PONES PONGS POODS POOED POOFS POOHS POOKA POOLS POONS POOPS POPES POPPA POPUP PORED PORER PORES PORGY PORKY PORTS POSED POSER POSES POSTS POTTO POUFS POULT POURS POUTS POUTY POXES PRAMS PRANA PRANG PRASE PRATE PRATS PRAYS PREEN PREPS PRESA PREXY PREYS PRICY PRIED PRIER PRIES PRIGS PRIMO PRIMP PRINK PRION PRODS PROEM PROFS PROLE PROMS PROPR PROPS PROSY PROWL PROWS PRUDE PRYER PSEUD PSHAW PSOAS PUBES PUBIS PUCKA PUCKS PUDGY PUFFS PUKED PUKES PUKKA PULAS PULED PULER PULES PULLS PULPS PULPY PUMAS PUMPS PUNGS PUNGY PUNKS PUNTS PUPAE PUPAL PUPAS PURER PURLS PURRS PURSY PUTTO PUTTS PWNED PYGMY PYLON PYOID PYRES PYXES PYXIE PZAZZ QIBLA QOPHS QUADS QUAFF QUAKY QUALE QUALM QUANT QUASH QUASS QUAYS QUEAN QUERN QUIDS QUIFF QUINE QUINS QUINT QUIPS QUIPU QUIRE QUIRT QUITS QUOIN QUOIT QUOTH RACED RACES RACKS RACON RADII RADIX RAFTS RAGAS RAGED RAGES RAGGA RAGIS RAIDS RAILS RAINS RAJAH RAJAS RAJES RAKED RAKER RAKES RALES RAMEN RAMIE RAMPS RANCE RANEE RANGY RANIS RANKS RANTS RAPER RARED RARES RASED RASES RASPS RASPY RATAL RATAN RATED RATEL RATER RATES RATHE RATTY RAVED RAVEL RAVER RAVES RAVIN RAWER RAZED RAZEE RAZES READS REALS REAMS REAPS REARM REARS REATA REAVE REBEC REBID REBUS REBUT RECCE RECON RECTA RECTI RECTO RECUR RECUT REDAN REDID REDLY REDUX REDYE REEDS REEDY REEFS REEKS REEKY REELS REEST REFIT REFIX REFRY REGEX REIFY REINS REIVE REJIG RELIT REMAP REMEX REMIX RENDS RENIN RENTS REORG REPPS REPRO RERAN RESAT RESEW RESIT RESOW RESTS RETCH RETIE RETRO RETRY REVET REWED RHEAS RHEUM RHOMB RHUMB RIALS RIANT RIATA RICED RICER RICES RICKS RIDES RIDGY RIELS RIFER RIFFS RIFTS RILED RILES RILLE RILLS RIMED RIMES RINDS RINGS RINKS RIOTS RIPEN RIPER RISES RISHI RISKS RITES RITZY RIVED RIVEN RIVES RIVET RIYAL ROADS ROAMS ROANS ROARS ROBED ROBES ROBLE ROCKS ROILS ROILY ROLES ROLLS ROMEO ROMPS RONDE RONDO ROODS ROOFS ROOKS ROOKY ROOMS ROOMY ROOSE ROOTS ROPED ROPER ROPES ROPEY ROQUE ROSES ROSIN ROTAS ROTLS ROUST ROUTS ROVED ROVES ROWAN ROWED ROWEL RUBEL RUBES RUBLE RUCHE RUCKS RUDDS RUDER RUFFS RUING RUINS RULED RULES RUMAL RUMBA RUMEN RUMMY RUMPS RUNES RUNGS RUNIC RUNTS RUNTY RUSES RUSHY RUSKS RUSTS RUTHS RUTTY SABIN SABOT SABRA SACKS SACRA SADES SADHU SAFES SAGAS SAGER SAGES SAGGY SAIGA SAILS SAKER SAKES SAKIS SALEP SALES SALMI SALOL SALPA SALTS SAMBO SAMES SAMEY SANDS SANER SAPID SAPOR SAPPY SARAN SARDS SAREE SARGE SARIS SARKY SAROS SASIN SATAY SATED SATEM SATES SATYR SAURY SAVED SAVES SAVOY SAWED SAWER SAXES SAYER SCABS SCADS SCAGS SCALD SCAMP SCAMS SCANS SCAPE SCARP SCARS SCATS SCEND SCHMO SCHWA SCONE SCOWL SCOWS SCRAG SCRAM SCREE SCRIM SCRIP SCROD SCROG SCRUM SCUDO SCUDS SCUFF SCULL SCULP SCUMS SCUPS SCURF SCUTA SCUTE SCUTS SEALS SEAMS SEAMY SEARS SEATS SEBUM SECCO SECTS SEDGE SEDGY SEDUM SEEDS SEEKS SEELS SEEMS SEEPS SEERS SEGNO SEGUE SEINE SEISE SEISM SELAH SELLS SEMIS SENDS SENOR SENTE SEPAL SEPOY SEPTA SEPTS SERAI SERER SERFS SERIF SERIN SEROW SETAE SETTS SEWAN SEWED SEXED SEXES SEXTS SHADS SHAGS SHAHS SHAKO SHALL SHAMS SHAWM SHAYS SHEAF SHEDS SHEND SHERD SHEWN SHEWS SHIED SHIER SHIES SHILL SHIMS SHINS SHIPS SHIRK SHIRR SHITS SHIVA SHIVE SHIVS SHLEP SHOAT SHOED SHOES SHOOL SHOON SHOOS SHOPS SHORN SHOTE SHOTS SHOWS SHRED SHREW SHTIK SHUCK SHUNS SHUSH SHUTS SHWAS SHYER SHYLY SIBYL SICKO SICKS SIDED SIDES SIDLE SIFTS SIGHS SIGIL SIGNS SIKAS SILDS SILKS SILLS SILOS SILTS SILTY SILVA SIMAR SIMBA SINCE SINES SINEW SINGE SINGS SINKS SIRED SIREE SIRES SIRUP SISAL SISES SITAR SITED SITES SITUP SITUS SIXES SIZAR SIZED SIZER SIZES SKALD SKEAN SKEET SKEGS SKEIN SKELP SKEPS SKEWS SKIDS SKIED SKIES SKIFF SKIMP SKIMS SKINK SKINS SKINT SKIPS SKIRL SKIRR SKITE SKITS SKIVE SKOAL SKOSH SKUAS SKULK SKYED SLABS SLAGS SLAKE SLAMS SLAPS SLATS SLATY SLAYS SLEDS SLEWS SLIER SLILY SLIMS SLINK SLIPS SLITS SLOBS SLOES SLOGS SLOPS SLOSH SLOTS SLOWS SLUBS SLUED SLUES SLUFF SLUGS SLUMS SLUNK SLURP SLURS SLUTS SLYER SLYLY SLYPE SMALT SMARM SMAZE SMEWS SMOCK SMOGS SMOKO SMOLT SMOTE SMUTS SNAFU SNAGS SNAKY SNAPS SNARF SNARK SNARL SNATH SNECK SNEER SNICK SNIDE SNIPS SNITS SNOBS SNOGS SNOOD SNOOK SNOOT SNORE SNOTS SNOWS SNUBS SNUGS SOAKS SOAPS SOAPY SOARS SOAVE SOCKS SOCLE SODAS SOFAR SOFAS SOFTA SOFTY SOILS SOLAN SOLDO SOLED SOLES SOLON SOLOS SOLUS SOMAS SONDE SONES SONGS SONLY SOOTH SOOTY SOPOR SOPPY SORBS SORER SORES SORGO SORTS SORUS SOUGH SOUKS SOULS SOUPS SOUPY SOURS SOUSE SOWED SOWER SPACY SPAHI SPAKE SPALL SPAMS SPANG SPANS SPARS SPATS SPAYS SPECS SPEOS SPEWS SPICA SPICK SPICS SPIEL SPIER SPIFF SPIKY SPILE SPINS SPINY SPIRT SPIRY SPITS SPITZ SPIVS SPLAT SPLAY SPOOR SPOTS SPRAG SPRAT SPRIG SPRIT SPROG SPRUE SPUDS SPUED SPUES SPUME SPUMY SPUNK SPURN SPURS SPUTA SQUAB SQUAW SQUIB SRUTI STABS STACC STAGS STAGY STAID STANE STANG STANK STAPH STARS STATS STAYS STDIO STELA STELE STEMS STENO STEPS STERE STETS STEWS STICH STIES STILE STILT STIPE STIRK STIRS STOAT STOGY STOMA STOOK STOPE STOPS STOSS STOUP STOWS STREP STREW STRIA STROP STROW STROY STRUM STUBS STUDS STULL STUNK STUNS STUPA STUPE STYES STYLI SUCKS SUCRE SUDOR SUDSY SUETY SUINT SUITS SULCI SULFA SULKS SULKY SUMAC SUMMA SUMPS SUNUP SUPPL SUPRA SURAH SURAL SURAS SURDS SURER SURFS SURGY SURRA SUTRA SWABS SWAGE SWAGS SWALE SWANK SWANS SWAPS SWARD SWART SWASH SWATS SWAYS SWEDE SWIGS SWILL SWIMS SWINK SWIZZ SWOPS SWOTS SYCEE SYLPH SYNCH SYNCS SYNOP SYNTH SYSOP TABES TABLA TABOR TABUS TACET TACHE TACKS TACOS TAFFY TAFIA TAIGA TAILS TAKAS TAKES TAKIN TALAS TALER TALES TALKS TALKY TALUK TALUS TAMED TAMER TAMES TAMIS TAMMY TAMPS TANGS TANGY TANKA TANKS TANSY TANTO TAPAS TAPED TAPES TAPIR TAPIS TARDY TARED TARES TARGE TARNS TAROS TARPS TARRY TARSI TARTS TARTY TASKS TASSE TATER TATTY TAUPE TAXED TAXER TAXES TAXIS TAXON TAYRA TAZZA TEAKS TEALS TEAMS TEARS TEATS TECHS TECHY TEDDY TEEMS TEENS TELEG TELEX TELIC TELLS TELLY TEMPI TEMPS TENCH TENDS TENGE TENIA TENNO TENON TENTS TEPEE TEPID TERCE TERMS TERNS TERRA TERSE TESLA TESTA TESTS TESTY TETHS TETRA TEXTS THANE THAWS THEBE THECA THEES THEGN THEIR THEOL THERE THERM THESE THEWS THEWY THILL THINS THIOL THOLE THORP THOSE THOUS THROB THROE THRUM THUDS THUGS THUJA THUNK THUYA THYMI TICAL TICKS TIDED TIDES TIERS TIFFS TIGON TIKES TILDE TILED TILER TILES TILLS TILTH TILTS TIMED TIMES TINCT TINEA TINED TINES TINGS TINNY TINTS TIPIS TIRED TIRES TIROS TITCH TITER TITIS TIZZY TOADS TOADY TODDY TOEAS TOFFS TOFFY TOGAE TOGAS TOILE TOILS TOKAY TOKED TOKES TOLAN TOLAR TOLLS TOLLY TOLUS TOLYL TOMBS TOMES TONED TONES TONGA TONGS TONUS TOOLS TOOTS TOPED TOPEE TOPER TOPES TOPIS TOPOG TOQUE TORAH TORII TORRS TORSE TORSI TORSK TORTE TORTS TORUS TOTED TOTER TOTES TOURS TOUTS TOWED TOWNS TOWNY TOYED TRAMS TRAPS TRASS TRAVE TRAWL TRAYS TREAS TREED TREEN TREES TREKS TRESS TREWS TREYS TRICE TRIER TRIKE TRILL TRIMS TRINE TRIOS TRIPE TRIPS TROAT TROMP TRONA TRONS TROTH TROTS TROVE TROWS TROYS TRUED TRUES TRUGS TRULL TRYMA TRYST TSARS TUBAL TUBAS TUBBY TUBED TUBER TUBES TUCKS TUFTS TUFTY TULLE TUMID TUNAS TUNED TUNES TUNNY TUPLE TUQUE TURBO TURDS TURFS TURFY TURNS TURPS TUSHY TUSKS TUTTI TUTTY TUTUS TUXES TWANG TWATS TWEED TWEEN TWERK TWERP TWIGS TWILL TWINS TWIRL TWIRP TWITS TWIXT TYKES TYPAL TYPED TYPES TYPOS TYROS TZARS UDDER UHLAN UKASE ULEMA ULNAE ULNAR ULNAS UMBEL UMBER UMBRA UMIAK UMPED UNAPT UNARM UNARY UNBAR UNBID UNBOX UNCAP UNDER UNDID UNFED UNFIX UNITS UNJAM UNLAY UNLIT UNMAN UNMET UNPEG UNPEN UNPIN UNRIG UNSAY UNSET UNSEX UNTIE UNTIL UNWED UNWON UNZIP UPEND UREDO URGED URGER URGES URIAL USERS USURP USURY UTERI UTILE UVEAS UVULA VACUA VAGAL VAGUS VALES VALSE VAMPS VAMPY VANDA VANES VAPED VAPES VAPID VARAS VARIA VARIX VARUS VARVE VASES VASTS VASTY VATIC VAUNT VEDIC VEEPS VEERS VEERY VEGES VEILS VEINS VEINY VELAR VELDS VELDT VELUM VENAE VENAL VENDS VENGE VENIN VENTS VERBS VERSA VERSO VERST VERTU VESTA VESTS VETCH VETER VEXED VEXES VIALS VIAND VIBES VICED VICES VIEWS VIEWY VILER VILLI VIMEN VINES VINIC VIOLS VIREO VIRGA VIRTU VISAS VISED VISES VITAE VITAS VITTA VIVAS VIZIR VIZOR VOCAB VOIDS VOILE VOLAR VOLES VOLTS VOLVA VOMER VOTED VOTES VOUGE VOWED VOWER VULVA WACKE WACKO WACKS WADED WADER WADES WADGE WADIS WAFTS WAGED WAGES WAHOO WAIFS WAILS WAINS WAITS WAKED WAKEN WAKES WALED WALES WALKS WALLS WALLY WANDS WANED WANES WANKS WANLY WANTS WARDS WARES WAREZ WARMS WARNS WARPS WARTS WARTY WASHY WASPS WATTS WAVED WAVER WAVES WAXED WAXEN WAXES WAZOO WEALD WEALS WEANS WEARS WEBBY WEBER WEEDS WEEDY WEEKS WEENS WEENY WEEPS WEEPY WEEST WEFTS WEIRS WEKAS WELDS WELLS WELLY WELTS WENCH WENDS WERSH WETLY WHAMS WHAPS WHATS WHEAL WHEEN WHELK WHELM WHELP WHENS WHERE WHETS WHICH WHILE WHIMS WHINS WHIPS WHIPT WHIRR WHIRS WHISH WHIST WHITS WHITY WHIZZ WHOMP WHOPS WHORL WHOSE WHOSO WHSLE WHUPS WICKS WIDES WIKIS WILDS WILED WILES WILLS WILLY WILTS WIMPS WIMPY WINCE WINDS WINED WINES WINGS WINKS WINOS WINZE WIPED WIPES WIRED WIRER WIRES WIRRA WISED WISES WISPS WISPY WITHE WITHY WIVED WIVES WIZEN WIZES WOALD WODGE WOFUL WOLDS WOLFS WOMBS WONKS WOODS WOOED WOOER WOOFS WOOLS WOOLY WOOPS WOOZY WORDS WORDY WORKS WORMS WORMY WOULD WOWED WRACK WRAPS WRAPT WRENS WREST WRIER WRING WRITS WROTH WRUNG WRYER WRYLY WURST WUSSY XCVII XEBEC XENIA XERIC XEROX XREFS XTERM XXVII XXXII XXXIV XXXIX XXXVI XYLEM XYLOL YACKS YAKKA YAMEN YANKS YAPOK YAPON YAPPY YARDS YARNS YAWED YAWLS YAWNS YAWPS YEAHS YEANS YEARS YEGGS YELLS YELPS YENTA YESES YETIS YIKES YOBBO YOCKS YODEL YODLE YOGIC YOGIN YOGIS YOKED YOKEL YOKES YOLKS YONKS YOURS YOWLS YUCCA YUCKS YUCKY YUKKY YULAN YUPPY YURTS ZAIRE ZAMIA ZAPPY ZARFS ZAYIN ZAZEN ZEBEC ZEBUS ZEROS ZESTS ZESTY ZETAS ZIBET ZILCH ZINCS ZINES ZINGS ZINGY ZIPPY ZITIS ZLOTY ZOMBI ZONAL ZONED ZONES ZOOID ZOOMS ZORCH ZORIL";
+
+        /* ================= constants ================= */
+        const EFF = [0, 3, 2.5, 2, 1.5, 1.25, 1];
+        const INVERT = { G: "X", X: "G", Y: "Y" };
+        const NAME = { G: "green", Y: "yellow", X: "gray" };
+        const GLYPH = { G: "●", Y: "◐", X: "○" };
+        const L5 = 5;
+        const BASE = [100, 150, 200]; // Opener, Standard, Keystone
+        const GLITCH_PTS = 25; // + per glitch in the word, − per time fooled
+        const SWEEP_PTS = 100;
+        const SCHED = [
+          { tier: "Boot", gl: [0, 0, 0] },
+          { tier: "Boot", gl: [0, 0, 1] },
+          { tier: "Signal", gl: [0, 1, 1] },
+          { tier: "Signal", gl: [1, 1, 1] },
+          { tier: "Static", gl: [1, 1, 2] },
+          { tier: "Static", gl: [1, 1, 2] },
+          { tier: "Corrupt", gl: [1, 2, 2] },
+          { tier: "Corrupt", gl: [2, 2, 2] },
+          { tier: "Meltdown", gl: [2, 2, 2] },
+          { tier: "Kernel Panic", gl: [2, 2, 2] },
+        ];
+        const PACE_SHARE = [
+          0.105, 0.208, 0.309, 0.411, 0.511, 0.61, 0.708, 0.805, 0.903, 1,
+        ];
+        const TARGET = { easy: 6400, standard: 7700, expert: 8900 };
+        const DLABEL = { easy: "Easy", standard: "Standard", expert: "Expert" };
+        const DSHORT = { easy: "Easy", standard: "Std", expert: "Exp" };
+        const ROLE = ["Opener", "Standard", "Keystone"];
+        const MAXG = 6;
+        const K_SESSION = "gw:v1:session",
+          K_STATS = "gw:v1:stats",
+          K_PREFS = "gw:v1:prefs";
+
+        /* ================= word lists ================= */
+        const NOT_ANSWER = new Set(
+          "TRUMP SPERM GYPSY NAKED ERECT PUBIC VOMIT DRUNK DYING DEATH CRIME".split(
+            " ",
+          ),
+        ); // valid guesses, never answers
+        const LIST = ANS.split(" ").filter((w) => !NOT_ANSWER.has(w)),
+          VALID = new Set(ANS.split(" "));
+        EXTRA.split(" ").forEach((w) => VALID.add(w));
+
+        /* ================= rng ================= */
+        function cyrb(str) {
+          let h1 = 1779033703,
+            h2 = 3144134277,
+            h3 = 1013904242,
+            h4 = 2773480762;
+          for (let i = 0, k; i < str.length; i++) {
+            k = str.charCodeAt(i);
+            h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+            h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+            h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+            h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+          }
+          h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+          h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+          h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+          h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+          return (h1 ^ h2 ^ h3 ^ h4) >>> 0;
+        }
+        function mulberry32(a) {
+          return function () {
+            a |= 0;
+            a = (a + 0x6d2b79f5) | 0;
+            let t = Math.imul(a ^ (a >>> 15), 1 | a);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+        const rngFor = (s) => mulberry32(cyrb(s));
+
+        /* ================= core rules ================= */
+        const isTricky = (w) =>
+          /[JQXZKVWY]/.test(w) || new Set(w).size < w.length; // rare letter or repeated letter
+        function feedback(guess, answer) {
+          const res = Array(answer.length).fill("X"),
+            left = {};
+          for (let i = 0; i < answer.length; i++)
+            guess[i] === answer[i]
+              ? (res[i] = "G")
+              : (left[answer[i]] = (left[answer[i]] || 0) + 1);
+          for (let i = 0; i < answer.length; i++)
+            if (res[i] === "X" && left[guess[i]] > 0) {
+              res[i] = "Y";
+              left[guess[i]]--;
+            }
+          return res;
+        }
+        const display = (truth, gl) =>
+          truth.map((t, i) => (gl.includes(i) ? INVERT[t] : t));
+        /* "Fooled": a flagged tile told you the truth in reverse and a later guess acted on the raw colour.
+   - flagged GREEN (really gray)  -> letter is not there; putting the same letter in that slot again = fooled
+   - flagged GRAY  (really green) -> letter IS there;    putting a different letter in that slot     = fooled
+   Each flagged tile can fool you at most once; the winning guess never counts. */
+        function foolEvents(rows, answer) {
+          const ev = [];
+          rows.forEach((row, r) =>
+            row.glitchSlots.forEach((i) => {
+              const c = row.guess[i],
+                t = row.truth[i];
+              if (t === "Y") return;
+              const at = rows.findIndex(
+                (n, k) =>
+                  k > r &&
+                  n.guess !== answer &&
+                  (t === "X" ? n.guess[i] === c : n.guess[i] !== c),
+              );
+              if (at > 0)
+                ev.push({ row: r, at, slot: i, letter: c, shown: INVERT[t] });
+            }),
+          );
+          return ev;
+        }
+        const countFooled = (rows, answer) => foolEvents(rows, answer).length;
+
+        function pool(role, r) {
+          let out = LIST.filter((w, i) =>
+            role === 0
+              ? i < 700 && !isTricky(w)
+              : role === 1
+                ? i < 1500
+                : i >= 300 && isTricky(w),
+          );
+          if (role < 2) {
+            const n = out.length;
+            if (r < 3) out = out.slice(0, Math.ceil(n / 3));
+            else if (r >= 7) out = out.slice(Math.floor(n / 3));
+          }
+          return out;
+        }
+        function buildAnswers(seed) {
+          const rng = rngFor(seed + ":answers"),
+            used = new Set(),
+            out = [];
+          SCHED.forEach((R, r) => {
+            const firsts = new Set();
+            [0, 1, 2].forEach((w) => {
+              const p = pool(w, r);
+              let pick = null;
+              for (let t = 0; t < 800 && !pick; t++) {
+                const c = p[Math.floor(rng() * p.length)];
+                if (!used.has(c) && !firsts.has(c[0])) pick = c;
+              }
+              if (!pick) pick = p.find((c) => !used.has(c));
+              used.add(pick);
+              firsts.add(pick[0]);
+              out.push(pick);
+            });
+          });
+          return out;
+        }
+
+        /* ================= state ================= */
+        let S = null,
+          ANSWERS = [],
+          busy = false,
+          pendingConfirm = null,
+          animRow = null;
+        const slotCache = new Map();
+        const store = {
+          get(k) {
+            try {
+              const v = localStorage.getItem(k);
+              return v ? JSON.parse(v) : null;
+            } catch (e) {
+              return null;
+            }
+          },
+          set(k, v) {
+            try {
+              localStorage.setItem(k, JSON.stringify(v));
+            } catch (e) {}
+          },
+        };
+        let PREFS = Object.assign(
+          { seenHelp: false, seenCoach: false, cb: false, sound: true },
+          store.get(K_PREFS) || {},
+        );
+        const savePrefs = () => store.set(K_PREFS, PREFS);
+
+        /* ================= sound (Web Audio synth, no files) ================= */
+        const SFX = (() => {
+          let ctx = null,
+            master = null,
+            noiseBuf = null;
+          function ac() {
+            if (!PREFS.sound) return null;
+            try {
+              if (!ctx) {
+                const C = window.AudioContext || window.webkitAudioContext;
+                if (!C) return null;
+                ctx = new C();
+                master = ctx.createGain();
+                master.gain.value = 0.32;
+                master.connect(ctx.destination);
+                noiseBuf = ctx.createBuffer(
+                  1,
+                  ctx.sampleRate * 0.5,
+                  ctx.sampleRate,
+                );
+                const d = noiseBuf.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+              }
+              if (ctx.state === "suspended") ctx.resume();
+              return ctx;
+            } catch (e) {
+              return null;
+            }
+          }
+          function tone(
+            freq,
+            dur,
+            {
+              type = "sine",
+              vol = 0.3,
+              delay = 0,
+              slide = 0,
+              attack = 0.004,
+            } = {},
+          ) {
+            const c = ac();
+            if (!c) return;
+            const t = c.currentTime + delay,
+              o = c.createOscillator(),
+              g = c.createGain();
+            o.type = type;
+            o.frequency.setValueAtTime(freq, t);
+            if (slide)
+              o.frequency.exponentialRampToValueAtTime(
+                Math.max(30, freq * slide),
+                t + dur,
+              );
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(vol, t + attack);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            o.connect(g);
+            g.connect(master);
+            o.start(t);
+            o.stop(t + dur + 0.03);
+          }
+          function noise(
+            dur,
+            { vol = 0.2, delay = 0, freq = 2000, q = 1 } = {},
+          ) {
+            const c = ac();
+            if (!c) return;
+            const t = c.currentTime + delay,
+              src = c.createBufferSource(),
+              f = c.createBiquadFilter(),
+              g = c.createGain();
+            src.buffer = noiseBuf;
+            f.type = "bandpass";
+            f.frequency.value = freq;
+            f.Q.value = q;
+            g.gain.setValueAtTime(vol, t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            src.connect(f);
+            f.connect(g);
+            g.connect(master);
+            src.start(t);
+            src.stop(t + dur + 0.02);
+          }
+          const glitch = (d = 0) => {
+            for (let i = 0; i < 4; i++)
+              tone(300 + Math.random() * 900, 0.035, {
+                type: "square",
+                vol: 0.07,
+                delay: d + i * 0.03,
+              });
+            noise(0.12, { vol: 0.12, delay: d, freq: 3500, q: 2 });
+          };
+          return {
+            key: () =>
+              tone(560 + Math.random() * 80, 0.045, {
+                type: "triangle",
+                vol: 0.14,
+              }),
+            back: () =>
+              tone(330, 0.05, { type: "triangle", vol: 0.12, slide: 0.8 }),
+            click: () => tone(880, 0.04, { type: "sine", vol: 0.12 }),
+            invalid: () => {
+              tone(150, 0.16, { type: "square", vol: 0.1 });
+              tone(118, 0.2, { type: "square", vol: 0.09, delay: 0.07 });
+            },
+            warn: () => {
+              tone(740, 0.09, { type: "square", vol: 0.08 });
+              tone(740, 0.09, { type: "square", vol: 0.08, delay: 0.13 });
+            },
+            tile: (st, gl) => {
+              if (gl) {
+                glitch();
+                return;
+              }
+              if (st === "G") tone(784, 0.16, { type: "triangle", vol: 0.2 });
+              else if (st === "Y")
+                tone(587, 0.14, { type: "triangle", vol: 0.17 });
+              else tone(220, 0.1, { type: "sine", vol: 0.14, slide: 0.85 });
+            },
+            stabilise: () => {
+              noise(0.18, { vol: 0.14, freq: 6000, q: 0.7 });
+              tone(1568, 0.25, { type: "sine", vol: 0.1, delay: 0.05 });
+            },
+            win: () =>
+              [523, 659, 784, 1047].forEach((f, i) =>
+                tone(f, 0.22, { type: "triangle", vol: 0.18, delay: i * 0.08 }),
+              ),
+            fail: () =>
+              [392, 330, 262, 196].forEach((f, i) =>
+                tone(f, 0.28, { type: "sawtooth", vol: 0.07, delay: i * 0.12 }),
+              ),
+            fooled: () => {
+              glitch();
+              tone(400, 0.35, {
+                type: "sawtooth",
+                vol: 0.08,
+                slide: 0.4,
+                delay: 0.1,
+              });
+            },
+            round: (sweep) => {
+              [392, 494, 587].forEach((f) =>
+                tone(f, 0.5, { type: "triangle", vol: 0.1 }),
+              );
+              if (sweep)
+                [1175, 1397, 1760].forEach((f, i) =>
+                  tone(f, 0.18, {
+                    type: "sine",
+                    vol: 0.08,
+                    delay: 0.25 + i * 0.07,
+                  }),
+                );
+            },
+            victory: () =>
+              [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) =>
+                tone(f, i === 6 ? 0.6 : 0.18, {
+                  type: "triangle",
+                  vol: 0.16,
+                  delay: i * 0.11,
+                }),
+              ),
+            defeat: () =>
+              [440, 415, 392, 370].forEach((f, i) =>
+                tone(f, 0.4, { type: "triangle", vol: 0.1, delay: i * 0.18 }),
+              ),
+            unlock: () => ac(),
+          };
+        })();
+        let saveTimer = null;
+        const save = () => {
+          clearTimeout(saveTimer);
+          store.set(K_SESSION, S);
+        };
+        const saveSoon = () => {
+          clearTimeout(saveTimer);
+          saveTimer = setTimeout(save, 300);
+        };
+        const track = (name, data) => {
+          try {
+            window.va && window.va("event", { name, data });
+          } catch (e) {}
+        };
+
+        function today() {
+          const d = new Date();
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        }
+        function newSession(difficulty, mode) {
+          const seed =
+            mode === "daily"
+              ? "daily-" + today()
+              : "r-" +
+                Date.now().toString(36) +
+                Math.floor(Math.random() * 46656).toString(36);
+          S = {
+            v: 1,
+            seed,
+            mode,
+            difficulty,
+            startedAt: Date.now(),
+            cur: 0,
+            draft: "",
+            phase: "play",
+            statsDone: false,
+            words: Array.from({ length: 30 }, (_, i) => ({
+              rows: [],
+              status: i ? "locked" : "active",
+            })),
+            roundScores: Array(10).fill(null),
+          };
+          ANSWERS = buildAnswers(seed);
+          slotCache.clear();
+          pendingConfirm = null;
+          save();
+          track("gw_start", { difficulty, mode });
+        }
+        const X = () => TARGET[S.difficulty];
+        const paceAt = (r) =>
+          r <= 0 ? 0 : Math.round(X() * PACE_SHARE[r - 1]);
+
+        function wordMeta(i) {
+          const r = Math.floor(i / 3),
+            w = i % 3,
+            R = SCHED[r];
+          return {
+            r,
+            w,
+            L: L5,
+            k: R.gl[w],
+            tier: R.tier,
+            drift: r >= 6 || (S.difficulty === "expert" && r >= 4),
+          };
+        }
+        function pickSlots(rng, L, k) {
+          for (;;) {
+            const s = new Set();
+            while (s.size < k) s.add(Math.floor(rng() * L));
+            const a = [...s].sort((x, y) => x - y);
+            if (a.every((v, j) => j === 0 || v - a[j - 1] > 1)) return a;
+          }
+        }
+        function glitchSlots(i, row) {
+          const m = wordMeta(i);
+          if (!m.k) return [];
+          const rk = m.drift ? row : 0,
+            key = `${S.seed}|${S.difficulty}|${i}|${rk}`;
+          if (slotCache.has(key)) return slotCache.get(key);
+          const prev =
+            m.drift && row > 0 ? glitchSlots(i, row - 1).join(",") : null;
+          let res;
+          for (let salt = 0; ; salt++) {
+            res = pickSlots(rngFor(`${S.seed}:${i}:${rk}:${salt}`), m.L, m.k);
+            if (!prev || res.join(",") !== prev) break;
+          }
+          slotCache.set(key, res);
+          return res;
+        }
+        function wordInfo(i) {
+          const ans = ANSWERS[i],
+            W = S.words[i],
+            m = wordMeta(i);
+          const rows = W.rows.map((g, ri) => {
+            const truth = feedback(g, ans),
+              gs = glitchSlots(i, ri);
+            return {
+              guess: g,
+              truth,
+              glitchSlots: gs,
+              shown: display(truth, gs),
+            };
+          });
+          const fooled = countFooled(rows, ans),
+            solved = W.status === "solved",
+            g = rows.length,
+            B = BASE[m.w];
+          let raw = 0,
+            score = 0,
+            gb = 0;
+          if (solved) {
+            raw = Math.round(B * EFF[g]);
+            gb = GLITCH_PTS * (m.k - fooled);
+            score = Math.max(0, raw + gb);
+          }
+          return {
+            ...m,
+            i,
+            ans,
+            rows,
+            fooled,
+            solved,
+            g,
+            B,
+            raw,
+            gb,
+            score,
+            status: W.status,
+          };
+        }
+        function roundScore(r) {
+          let sum = 0,
+            all = true;
+          for (let w = 0; w < 3; w++) {
+            const inf = wordInfo(r * 3 + w);
+            sum += inf.score;
+            if (!inf.solved) all = false;
+          }
+          return { sum, all, score: sum + (all ? SWEEP_PTS : 0) };
+        }
+        const doneTotal = () => S.roundScores.reduce((s, v) => s + (v || 0), 0);
+        const roundsDone = () => S.roundScores.filter((v) => v !== null).length;
+        function liveTotal() {
+          let t = doneTotal();
+          const r = Math.floor(S.cur / 3);
+          if (S.roundScores[r] === null)
+            for (let i = r * 3; i <= S.cur; i++) {
+              const w = S.words[i];
+              if (w.status === "solved") t += wordInfo(i).score;
+            }
+          return t;
+        }
+
+        /* ================= DOM helpers ================= */
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) =>
+          String(s).replace(
+            /[&<>"]/g,
+            (c) =>
+              ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+          );
+        function toast(msg, kind, ms = 1800) {
+          const t = document.createElement("div");
+          t.className = "toast" + (kind ? " " + kind : "");
+          t.textContent = msg;
+          $("toasts").appendChild(t);
+          setTimeout(() => t.remove(), ms);
+        }
+        const announce = (m) => {
+          $("live").textContent = "";
+          setTimeout(() => ($("live").textContent = m), 40);
+        };
+        function tileAria(c, state, gl) {
+          if (!state) return c ? `${c}, empty` : "empty";
+          if (gl)
+            return `${c}, glitched tile, shows ${NAME[state]}${state === "G" ? ", means not in this slot" : state === "X" ? ", means correct here" : ", truthful"}`;
+          return `${c}, ${NAME[state]}`;
+        }
+        function tileHTML(c, state, gl, extra = "") {
+          const cls = [
+            "tile",
+            state || "",
+            c && !state ? "filled" : "",
+            gl ? "gl" : "",
+            extra,
+          ]
+            .filter(Boolean)
+            .join(" ");
+          return `<div class="${cls}" role="gridcell" aria-label="${esc(tileAria(c, state, gl))}">${c ? esc(c) : ""}<span class="cb" aria-hidden="true">${state ? GLYPH[state] : ""}</span></div>`;
+        }
+
+        /* ================= rendering ================= */
+        function sizeBoard(L) {
+          const b = $("board"),
+            w = Math.min(b.parentElement.clientWidth, 470);
+          let t = Math.min(60, Math.floor((w - (L - 1) * 6) / L));
+          const top = b.getBoundingClientRect().top + scrollY;
+          const below =
+            $("banner").offsetHeight +
+            $("submitBar").offsetHeight +
+            $("kb").offsetHeight +
+            42;
+          t = Math.min(t, Math.floor((innerHeight - top - below - 30) / 6));
+          b.style.setProperty("--gw-tile", Math.max(34, t) + "px");
+        }
+        function renderBoard() {
+          const info = wordInfo(S.cur),
+            L = info.L,
+            rowsHTML = [];
+          const gtxt = info.k
+            ? `<span class="gl-tag">⌁ ${info.k} glitch${info.k > 1 ? "es" : ""} · ${info.drift ? "drift" : "fixed slot"}</span>`
+            : "<span>no glitches</span>";
+          $("wordHead").innerHTML =
+            `<span class="role">Round ${info.r + 1} · Word ${info.w + 1}/3 · ${ROLE[info.w]}</span><span>·</span>${gtxt}`;
+          sizeBoard(L);
+          const fixedPre = info.k && !info.drift ? glitchSlots(S.cur, 0) : [];
+          for (let ri = 0; ri < MAXG; ri++) {
+            let cells = "";
+            const row = info.rows[ri];
+            if (row && !(animRow === ri)) {
+              const winRow = info.solved && ri === info.rows.length - 1;
+              for (let j = 0; j < L; j++) {
+                const gl = row.glitchSlots.includes(j);
+                cells += winRow
+                  ? tileHTML(row.guess[j], "G", false)
+                  : tileHTML(row.guess[j], row.shown[j], gl);
+              }
+            } else if (row) {
+              // being animated: letters only
+              for (let j = 0; j < L; j++)
+                cells += tileHTML(
+                  row.guess[j],
+                  null,
+                  fixedPre.includes(j),
+                  fixedPre.includes(j) ? "pre" : "",
+                );
+            } else if (
+              ri === info.rows.length &&
+              info.status === "active" &&
+              S.phase === "play"
+            ) {
+              for (let j = 0; j < L; j++) {
+                const c = S.draft[j] || "";
+                cells += tileHTML(
+                  c,
+                  null,
+                  fixedPre.includes(j),
+                  fixedPre.includes(j) ? "pre" : "",
+                );
+              }
+            } else
+              for (let j = 0; j < L; j++) cells += tileHTML("", null, false);
+            rowsHTML.push(
+              `<div class="brow" role="row" data-r="${ri}">${cells}</div>`,
+            );
+          }
+          $("board").innerHTML = rowsHTML.join("");
+        }
+        const KB = ["QWERTYUIOP", "ASDFGHJKL", "↵ZXCVBNM⌫"];
+        function keyStates(info) {
+          const st = {},
+            rank = { Q: 0, X: 1, Y: 2, G: 3 };
+          info.rows.forEach((r, ri) => {
+            if (ri === animRow) return;
+            const winRow = info.solved && ri === info.rows.length - 1;
+            [...r.guess].forEach((c, j) => {
+              const gl = r.glitchSlots.includes(j) && !winRow;
+              const t = gl && S.difficulty !== "easy" ? "Q" : r.truth[j];
+              if (!st[c] || rank[t] > rank[st[c]]) st[c] = t;
+            });
+          });
+          return st;
+        }
+        function renderKeyboard() {
+          const st = keyStates(wordInfo(S.cur));
+          $("kb").innerHTML = KB.map(
+            (row) =>
+              `<div class="kr">${[...row]
+                .map((k) => {
+                  if (k === "↵")
+                    return `<button class="key wide" data-k="ENTER" type="button" aria-label="Enter">ENTER</button>`;
+                  if (k === "⌫")
+                    return `<button class="key wide" data-k="BACK" type="button" aria-label="Backspace">⌫</button>`;
+                  const s = st[k] || "";
+                  const lab =
+                    s === "Q"
+                      ? "seen only on a glitched tile"
+                      : s
+                        ? NAME[s]
+                        : "unused";
+                  return `<button class="key ${s}" data-k="${k}" type="button" aria-label="${k}, ${lab}">${k}</button>`;
+                })
+                .join("")}</div>`,
+          ).join("");
+        }
+        function roundExpected(r) {
+          return X() * (PACE_SHARE[r] - (r ? PACE_SHARE[r - 1] : 0));
+        }
+        function renderRails() {
+          const info = wordInfo(S.cur),
+            cr = info.r,
+            total = liveTotal(),
+            rd = roundsDone();
+          // ladder
+          let lad = "";
+          for (let r = 0; r < 10; r++) {
+            const sc = S.roundScores[r];
+            let dots = "";
+            for (let w = 0; w < 3; w++) {
+              const st = S.words[r * 3 + w].status;
+              dots += `<i class="${st === "solved" ? "s" : st === "failed" ? "f" : r * 3 + w === S.cur && S.phase === "play" ? "a" : ""}"></i>`;
+            }
+            const cls = sc === null ? "" : sc >= roundExpected(r) ? "up" : "dn";
+            lad += `<div class="lcell ${r === cr ? "cur" : ""} ${r > cr ? "lock" : ""}"><span class="rn">R${r + 1}</span><span class="dots">${dots}</span><span class="sc ${cls}">${sc === null ? (r === cr ? '<span style="color:var(--gw-muted)">' + (total - doneTotal() || "·") + "</span>" : "—") : sc}</span></div>`;
+          }
+          $("ladder").innerHTML = lad;
+          const R = SCHED[cr];
+          $("tierName").textContent = `R${cr + 1} · ${R.tier}`;
+          $("tierMeta").innerHTML =
+            `Words ${ROLE.join(" · ")}<br>Glitches ${R.gl.join(" · ")}<br>Mode ${R.gl.some(Boolean) ? (info.drift ? "drift" : "fixed slot") : "—"}`;
+          $("hdrRound").innerHTML =
+            `R${cr + 1} · <b>${R.tier.toUpperCase()}</b>`;
+          // score
+          $("scoreBig").innerHTML = `${total} <small>/ ${X()}</small>`;
+          const tgt = paceAt(Math.min(10, rd === cr ? cr + 1 : rd + 1));
+          $("paceBar").querySelector(".fill").style.width =
+            Math.min(100, (total / X()) * 100) + "%";
+          const mk = $("paceBar").querySelector(".mark");
+          mk.style.left = Math.min(100, (tgt / X()) * 100) + "%";
+          const ms = mk.querySelector("span");
+          ms.textContent =
+            "R" + Math.min(10, rd === cr ? cr + 1 : rd + 1) + " PACE " + tgt;
+          const pct = tgt / X();
+          ms.style.left = pct > 0.8 ? "auto" : pct < 0.2 ? "0" : "50%";
+          ms.style.right = pct > 0.8 ? "0" : "auto";
+          ms.style.transform =
+            pct > 0.8 || pct < 0.2 ? "none" : "translateX(-50%)";
+          let dtxt;
+          if (rd === 0)
+            dtxt = `<span class="delta">Target ${X()} · pace ${paceAt(1)} by end of R1</span>`;
+          else {
+            const d = doneTotal() - paceAt(rd);
+            dtxt = `<span class="delta ${d >= 0 ? "up" : "dn"}">${d >= 0 ? "▲ +" : "▼ "}${d} vs pace after R${rd}</span>`;
+            if (d < 0 && rd < 10)
+              dtxt += `<div class="meta-line"><span>Need ≈ ${Math.ceil((X() - doneTotal()) / (10 - rd))}/round</span></div>`;
+          }
+          $("paceDelta").innerHTML = dtxt;
+          $("diffLbl").textContent = DLABEL[S.difficulty];
+          $("seedLbl").textContent =
+            S.mode === "daily" ? S.seed.replace("daily-", "Daily ") : "Random";
+          // preview
+          let pv;
+          const gpart = (inf) =>
+            inf.k
+              ? ` ${inf.k - inf.fooled >= 0 ? "+" : "−"} ${Math.abs(GLITCH_PTS * (inf.k - inf.fooled))} glitch`
+              : "";
+          if (info.status === "active") {
+            const g = info.rows.length + 1;
+            pv = `${ROLE[info.w]} ${info.B} × ${EFF[g]} (guess ${g})${gpart(info)}<br>= <b>${Math.max(0, Math.round(info.B * EFF[g]) + GLITCH_PTS * (info.k - info.fooled))}</b> pts`;
+          } else if (info.solved)
+            pv = `Solved on guess ${info.g}<br>= <b>${info.score}</b> pts`;
+          else pv = `Unsolved<br>= <b>0</b> pts`;
+          $("preview").innerHTML = pv;
+          // mobile strip
+          const d = rd ? doneTotal() - paceAt(rd) : 0;
+          $("strip").innerHTML =
+            `<div class="strip-top"><span>R${cr + 1}·W${info.w + 1} ${R.tier}</span><span class="sc">${total} <small>/ ${X()}</small></span><span class="delta ${rd ? (d >= 0 ? "up" : "dn") : ""}">${rd ? (d >= 0 ? "▲+" : "▼") + d : "pace " + paceAt(1)}</span></div>
+    <div class="strip-ladder">${S.roundScores.map((s, r) => `<i class="${s !== null ? (s >= roundExpected(r) ? "done" : "behind") : r === cr ? "cur" : ""}"></i>`).join("")}</div>
+    <div class="preview">${pv.replace("<br>", " ")}</div>`;
+          $("legendChip").classList.toggle("on", cr >= 1);
+        }
+        function renderBanner() {
+          const el = $("banner");
+          if (S.phase === "done") {
+            el.innerHTML = `<div class="inner"><div class="res">Session complete · <b>${doneTotal()}</b> / ${X()}</div><div class="btnrow"><button class="btn pri" id="bnAct" type="button">Results</button><button class="btn" id="bnNew" type="button">New session</button></div></div>`;
+            $("bnAct").onclick = showResults;
+            $("bnNew").onclick = showMenu;
+            return;
+          }
+          if (S.phase !== "wordDone") {
+            el.innerHTML = "";
+            return;
+          }
+          const info = wordInfo(S.cur),
+            last = info.w === 2;
+          const label = last
+            ? info.r === 9
+              ? "Final summary →"
+              : "Round summary →"
+            : "Next word →";
+          const res = info.solved
+            ? `<div class="res"><span class="pts">+${info.score}</span>Solved in ${info.g}${info.fooled ? ` · fooled ×${info.fooled}` : ""}<div class="calc">${ROLE[info.w]} ${info.B} × ${EFF[info.g]} = ${info.raw}${info.k ? ` ${info.gb >= 0 ? "+" : "−"} ${Math.abs(info.gb)} glitch` : ""}</div></div>`
+            : `<div class="res"><span class="pts zero">+0</span>The word was <b>${info.ans}</b></div>`;
+          el.innerHTML = `<div class="inner">${res}<button class="btn pri" id="bnAct" type="button">${label}</button></div>`;
+          $("bnAct").onclick = advance;
+        }
+        function renderAll() {
+          renderRails();
+          renderBanner();
+          renderSubmit();
+          renderKeyboard();
+          renderBoard();
+          document.body.classList.toggle("cbm", !!PREFS.cb);
+        }
+
+        /* ================= input ================= */
+        function type(ch) {
+          if (busy || S.phase !== "play" || $("ov").classList.contains("open"))
+            return;
+          const info = wordInfo(S.cur);
+          if (ch === "ENTER") return submit();
+          if (ch === "BACK") {
+            if (!S.draft) return;
+            S.draft = S.draft.slice(0, -1);
+            pendingConfirm = null;
+            SFX.back();
+          } else if (/^[A-Z]$/.test(ch) && S.draft.length < info.L) {
+            S.draft += ch;
+            pendingConfirm = null;
+            SFX.key();
+          } else return;
+          saveSoon();
+          renderBoard();
+          renderSubmit();
+        }
+        function renderSubmit() {
+          const bar = $("submitBar"),
+            b = $("btnSubmit"),
+            play = S.phase === "play";
+          bar.classList.toggle("hide", !play);
+          b.disabled = !play || busy || S.draft.length < L5;
+        }
+        function shake() {
+          SFX.invalid();
+          const r = $("board").querySelector(
+            `.brow[data-r="${wordInfo(S.cur).rows.length}"]`,
+          );
+          if (r) {
+            r.classList.remove("shake");
+            void r.offsetWidth;
+            r.classList.add("shake");
+          }
+        }
+        function hardViolation(info, g) {
+          for (const r of info.rows) {
+            for (let j = 0; j < g.length; j++)
+              if (r.truth[j] === "G" && g[j] !== r.guess[j]) return true;
+            const need = {};
+            [...r.guess].forEach((c, j) => {
+              if (r.truth[j] !== "X") need[c] = (need[c] || 0) + 1;
+            });
+            for (const c in need)
+              if ([...g].filter((x) => x === c).length < need[c]) return true;
+          }
+          return false;
+        }
+        function submit() {
+          const i = S.cur,
+            info = wordInfo(i),
+            g = S.draft;
+          if (g.length < info.L) {
+            shake();
+            toast("Not enough letters");
+            return;
+          }
+          if (!VALID.has(g)) {
+            shake();
+            toast("Not in word list");
+            return;
+          }
+          if (info.rows.some((r) => r.guess === g)) {
+            shake();
+            toast("Already tried that word");
+            return;
+          }
+          if (S.difficulty === "expert" && hardViolation(info, g)) {
+            shake();
+            toast(
+              "Hard mode: reuse every confirmed hint (decode ⌁ first)",
+              "warn",
+              2600,
+            );
+            return;
+          }
+          if (
+            S.difficulty === "easy" &&
+            g !== info.ans &&
+            pendingConfirm !== g
+          ) {
+            const trial = [
+              ...info.rows,
+              { guess: g, truth: [], glitchSlots: [] },
+            ];
+            const ev = foolEvents(trial, info.ans).filter(
+              (e) => e.at === trial.length - 1,
+            );
+            if (ev.length) {
+              pendingConfirm = g;
+              SFX.warn();
+              toast(foolText(ev[0], true), "warn", 4200);
+              return;
+            }
+          }
+          pendingConfirm = null;
+          const W = S.words[i];
+          W.rows.push(g);
+          S.draft = "";
+          const solved = g === info.ans,
+            out = !solved && W.rows.length >= MAXG;
+          if (solved) W.status = "solved";
+          else if (out) W.status = "failed";
+          save();
+          const before = info.fooled;
+          reveal(i, W.rows.length - 1, solved, () => {
+            const now = wordInfo(i),
+              ev = foolEvents(now.rows, now.ans).filter(
+                (e) => e.at === now.rows.length - 1,
+              );
+            if (now.fooled > before && ev.length) {
+              SFX.fooled();
+              toast(foolText(ev[0]), "warn", 4200);
+            }
+            if (solved || out) finishWord();
+            else renderAll();
+          });
+        }
+        function foolText(e, warn) {
+          const slot = `slot ${e.slot + 1}`;
+          const why =
+            e.shown === "G"
+              ? `the flagged GREEN ${e.letter} in ${slot} meant ${e.letter} is NOT there — and you put it back`
+              : `the flagged GRAY ${e.letter} in ${slot} meant ${e.letter} IS correct there — and you moved it`;
+          return warn
+            ? `⌁ Careful: ${why}. Enter again to submit anyway (−${GLITCH_PTS}).`
+            : `⌁ Fooled by a glitch (−${GLITCH_PTS}): ${why}.`;
+        }
+        function reveal(i, ri, solved, done) {
+          busy = true;
+          animRow = ri;
+          renderAll();
+          const info = wordInfo(i),
+            row = info.rows[ri],
+            els = [
+              ...$("board").querySelectorAll(`.brow[data-r="${ri}"] .tile`),
+            ];
+          const step = matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? 60
+            : 260;
+          els.forEach((el, j) => {
+            setTimeout(() => {
+              const gl = row.glitchSlots.includes(j);
+              if (gl) {
+                el.classList.add("gl");
+                el.classList.remove("pre");
+              }
+              el.classList.remove("filled");
+              el.classList.add("flip");
+              setTimeout(
+                () => {
+                  SFX.tile(row.shown[j], gl);
+                  el.classList.add(row.shown[j]);
+                  el.querySelector(".cb").textContent = GLYPH[row.shown[j]];
+                  el.setAttribute(
+                    "aria-label",
+                    tileAria(row.guess[j], row.shown[j], gl),
+                  );
+                },
+                step === 60 ? 0 : 250,
+              );
+            }, j * step);
+          });
+          const total = els.length * step + (step === 60 ? 100 : 300);
+          announce(
+            `Row ${ri + 1}: ` +
+              [...row.guess]
+                .map(
+                  (c, j) =>
+                    `${c} ${NAME[row.shown[j]]}${row.glitchSlots.includes(j) ? " glitched" : ""}`,
+                )
+                .join(", "),
+          );
+          setTimeout(() => {
+            if (solved) {
+              const r = els[0].parentElement;
+              r.classList.add("win");
+              SFX.win();
+              setTimeout(
+                () => {
+                  if (row.glitchSlots.length) SFX.stabilise();
+                  els.forEach((el) => {
+                    if (
+                      el.classList.contains("gl") ||
+                      !el.classList.contains("G")
+                    ) {
+                      el.classList.remove("gl", "X", "Y", "flip");
+                      el.classList.add("G", "stab");
+                      el.querySelector(".cb").textContent = GLYPH.G;
+                    }
+                  });
+                  setTimeout(
+                    () => {
+                      busy = false;
+                      animRow = null;
+                      done();
+                    },
+                    step === 60 ? 50 : 500,
+                  );
+                },
+                step === 60 ? 50 : 520,
+              );
+            } else {
+              busy = false;
+              animRow = null;
+              done();
+            }
+          }, total);
+        }
+        function finishWord() {
+          const info = wordInfo(S.cur);
+          S.phase = "wordDone";
+          if (info.w === 2) {
+            S.roundScores[info.r] = roundScore(info.r).score;
+            track("gw_round", {
+              round: info.r + 1,
+              score: S.roundScores[info.r],
+            });
+          }
+          save();
+          renderAll();
+          if (info.solved) toast(`+${info.score}`, "", 1400);
+          else {
+            SFX.fail();
+            toast(`The word was ${info.ans}`, "", 2400);
+          }
+          setTimeout(() => {
+            const b = $("bnAct");
+            b && b.focus({ preventScroll: true });
+          }, 50);
+        }
+        function advance() {
+          SFX.click();
+          const info = wordInfo(S.cur);
+          if (info.w === 2) return showSummary(info.r);
+          S.cur++;
+          S.words[S.cur].status = "active";
+          S.phase = "play";
+          save();
+          renderAll();
+          maybeCoach();
+        }
+        function nextRound(r) {
+          closeModal();
+          if (r === 9) {
+            S.phase = "done";
+            save();
+            renderAll();
+            showResults();
+            return;
+          }
+          S.cur = (r + 1) * 3;
+          S.words[S.cur].status = "active";
+          S.phase = "play";
+          save();
+          renderAll();
+          maybeCoach();
+        }
+
+        /* ================= modals ================= */
+        let lastFocus = null,
+          modalClosable = true;
+        function openModal(html, { closable = true, cls = "" } = {}) {
+          lastFocus = document.activeElement;
+          modalClosable = closable;
+          const m = $("modal");
+          m.className = "modal " + cls;
+          m.innerHTML =
+            (closable
+              ? '<button class="icon-btn x" type="button" data-close aria-label="Close">✕</button>'
+              : "") + html;
+          $("ov").classList.add("open");
+          m.querySelectorAll("[data-close]").forEach(
+            (b) => (b.onclick = closeModal),
+          );
+          const f = m.querySelector(".btn.pri") || m.querySelector("button");
+          f && f.focus({ preventScroll: true });
+        }
+        function closeModal() {
+          $("ov").classList.remove("open");
+          if (lastFocus && lastFocus.focus)
+            lastFocus.focus({ preventScroll: true });
+        }
+        $("ov").addEventListener("click", (e) => {
+          if (e.target === $("ov") && modalClosable) closeModal();
+        });
+
+        function exampleRow(word, states, gls = []) {
+          return `<div class="help-row">${[...word].map((c, j) => tileHTML(c, states[j], gls.includes(j))).join("")}</div>`;
+        }
+        function showHelp() {
+          openModal(
+            `<div class="kicker">How to play</div><h2 id="mTitle">GLITCHWORD</h2>
+  <div class="howto">
+  <p>Solve <b>30 words</b> across <b>10 rounds</b> (3 words each). Each word gives you <b>6 guesses</b>. Beat the session by reaching the target score.</p>
+  <h4>1 · Colours</h4>
+  ${exampleRow("CRANE", ["G", "X", "Y", "X", "X"])}
+  <ul><li><b style="color:var(--gw-green)">Green</b> right letter, right slot</li><li><b style="color:var(--gw-yellow)">Yellow</b> in the word, wrong slot</li><li><b>Gray</b> not in the word</li></ul>
+  <h4>2 · Scoring</h4>
+  <ul><li>Each round has 3 words that get harder: <b>Opener 100</b> · <b>Standard 150</b> · <b>Keystone 200</b> base points.</li>
+  <li>Solve in fewer guesses to multiply it: guess 1 <b>×3</b> · 2 <b>×2.5</b> · 3 <b>×2</b> · 4 <b>×1.5</b> · 5 <b>×1.25</b> · 6 <b>×1</b>.</li>
+  <li>Each glitch in a word is worth <b>+25</b>. Solve all 3 words in a round: <b>+100 sweep</b>.</li></ul>
+  <h4>3 · Glitched tiles</h4>
+  ${exampleRow("GHOST", ["X", "G", "G", "G", "G"], [0])}
+  <ul><li>Tiles with a <b style="color:var(--gw-accent-2)">⌁ cracked frame</b> show the <b>opposite</b>: <b>Green ⇄ Gray</b>. <b>Yellow never lies.</b></li>
+  <li>Above, the flagged <b>gray</b> G really means <b>G is correct</b>.</li></ul>
+  <h4>4 · Don't get fooled</h4>
+  ${exampleRow("CRANE", ["G", "X", "X", "X", "X"], [0])}
+  <ul><li>That flagged <b>green</b> C really means <b>C is not in the word</b>.</li>
+  <li>If your next guess puts <b>C in slot 1 again</b>, the glitch fooled you: you lose that glitch's <b>+25</b> and another <b>−25</b>.</li>
+  <li>Same the other way: a flagged <b>gray</b> letter is correct — moving it away also counts as fooled.</li></ul>
+  </div>
+  <div class="btnrow" style="margin-top:14px"><button class="btn pri" type="button" data-close>Play</button></div>`,
+            { cls: "wide" },
+          );
+          PREFS.seenHelp = true;
+          savePrefs();
+        }
+        function showCoach() {
+          openModal(`<div class="kicker" style="color:var(--gw-accent-2)">⌁ Glitch detected</div><h2 id="mTitle">Read flagged tiles inverted</h2>
+  <p>From now on some tiles are <b>glitched</b>. They're flagged with a dashed, cracked frame and a ⌁ badge — before you see their colour.</p>
+  <div class="tbl"><table><thead><tr><th>Glitched tile shows</th><th>Means</th></tr></thead><tbody>
+  <tr><td>${tileHTML("A", "G", true).replace('class="tile', 'style="--gw-tile:32px" class="tile')}</td><td><b>A is not here</b> (absent)</td></tr>
+  <tr><td>${tileHTML("A", "X", true).replace('class="tile', 'style="--gw-tile:32px" class="tile')}</td><td><b>A is correct here</b></td></tr>
+  <tr><td>${tileHTML("A", "Y", true).replace('class="tile', 'style="--gw-tile:32px" class="tile')}</td><td><b>Yellow is true</b> — in word, elsewhere</td></tr>
+  </tbody></table></div>
+  <p><b>Don't get fooled:</b> if a flagged tile shows C <b>green</b>, C is absent — putting C back in that slot next guess costs <b>−25</b>. If it shows <b>gray</b>, that letter is correct — moving it away costs the same.</p>
+  <p>The keyboard won't colour letters seen only on glitched tiles — they get a hatched <b>?</b>. Rounds 2–6 glitch the <b>same column</b> every guess; from Round ${S.difficulty === "expert" ? 5 : 7} the glitch <b>drifts</b> row to row.</p>
+  <div class="btnrow"><button class="btn pri" type="button" data-close>Got it</button></div>`);
+          PREFS.seenCoach = true;
+          savePrefs();
+        }
+        function maybeCoach() {
+          const inf = wordInfo(S.cur);
+          if (inf.k && !PREFS.seenCoach) setTimeout(showCoach, 250);
+        }
+
+        function showMenu() {
+          const st = Object.assign(
+            { played: 0, won: 0, high: {} },
+            store.get(K_STATS) || {},
+          );
+          let diff = S.difficulty,
+            mode = "daily";
+          const inProgress =
+            S.phase !== "done" && (S.cur > 0 || S.words[0].rows.length > 0);
+          const html = `<div class="kicker">Session</div><h2 id="mTitle">New session</h2>
+   <p>Difficulty changes the target and assists — the 30 answers are the same for a given seed.</p>
+   <div class="opt" id="optDiff">${["easy", "standard", "expert"].map((d) => `<button type="button" data-d="${d}" aria-pressed="${d === diff}"><b>${DLABEL[d]}</b><small>target ${TARGET[d]}</small></button>`).join("")}</div>
+   <p id="diffNote" style="font-size:13px;margin-top:-6px"></p>
+   <div class="opt two" id="optMode"><button type="button" data-m="daily" aria-pressed="true"><b>Daily</b><small>${today()}</small></button><button type="button" data-m="random" aria-pressed="false"><b>Random</b><small>fresh seed</small></button></div>
+   <label class="toggle"><span>Colour-blind glyphs (● ◐ ○)</span><input type="checkbox" id="cbT" ${PREFS.cb ? "checked" : ""}></label>
+   <div class="toggle" style="font:12px var(--gw-mono);color:var(--gw-muted)"><span>Played ${st.played} · Won ${st.won}</span><span>Best ${["easy", "standard", "expert"].map((d) => DSHORT[d] + " " + (st.high[d] || "—")).join(" · ")}</span></div>
+   <div class="btnrow" style="margin-top:10px"><button class="btn pri" type="button" id="goNew">${inProgress ? "Abandon & start" : "Start session"}</button><button class="btn" type="button" data-close>Cancel</button></div>`;
+          openModal(html);
+          const note = {
+            easy: "Keyboard shows decoded colours; warns before you get fooled by a glitch.",
+            standard: "The intended challenge.",
+            expert:
+              "Hard mode (reuse confirmed hints); glitches drift from Round 5.",
+          };
+          const sync = () => {
+            document
+              .querySelectorAll("#optDiff button")
+              .forEach((b) =>
+                b.setAttribute("aria-pressed", b.dataset.d === diff),
+              );
+            document
+              .querySelectorAll("#optMode button")
+              .forEach((b) =>
+                b.setAttribute("aria-pressed", b.dataset.m === mode),
+              );
+            $("diffNote").textContent = note[diff];
+          };
+          document.querySelectorAll("#optDiff button").forEach(
+            (b) =>
+              (b.onclick = () => {
+                diff = b.dataset.d;
+                sync();
+              }),
+          );
+          document.querySelectorAll("#optMode button").forEach(
+            (b) =>
+              (b.onclick = () => {
+                mode = b.dataset.m;
+                sync();
+              }),
+          );
+          $("cbT").onchange = (e) => {
+            PREFS.cb = e.target.checked;
+            savePrefs();
+            document.body.classList.toggle("cbm", PREFS.cb);
+          };
+          $("goNew").onclick = () => {
+            newSession(diff, mode);
+            closeModal();
+            renderAll();
+            toast(`${DLABEL[diff]} · target ${TARGET[diff]}`);
+            maybeCoach();
+          };
+          sync();
+        }
+        function summaryHTML(r) {
+          const rs = roundScore(r);
+          let rows = "";
+          for (let w = 0; w < 3; w++) {
+            const inf = wordInfo(r * 3 + w);
+            rows += `<tr><td>${w + 1}</td><td><code>${inf.ans}</code></td><td class="n">${inf.solved ? inf.g : "✕"}</td><td class="n">${inf.k}${inf.fooled ? ` (fooled ×${inf.fooled})` : ""}</td><td class="n">${inf.score}</td></tr>`;
+          }
+          const tot = S.roundScores
+              .slice(0, r + 1)
+              .reduce((s, v) => s + (v || 0), 0),
+            pace = paceAt(r + 1),
+            d = tot - pace;
+          return { rs, tot, pace, d, rows };
+        }
+        function showSummary(r) {
+          const { rs, tot, pace, d, rows } = summaryHTML(r);
+          SFX.round(rs.all);
+          const left = 9 - r,
+            need = left > 0 ? Math.ceil((X() - tot) / left) : 0;
+          openModal(
+            `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-right:40px"><div class="kicker">Round ${r + 1} · ${SCHED[r].tier} — complete</div>${rs.all ? `<span class="chip" style="border-color:var(--gw-green);color:var(--gw-green)">SWEEP +${SWEEP_PTS}</span>` : ""}</div>
+   <h2 id="mTitle">+${rs.score} <span style="font-size:15px;color:var(--gw-muted)">this round</span></h2>
+   <div class="tbl"><table><thead><tr><th>Word</th><th>Answer</th><th class="n">Guesses</th><th class="n">Glitches</th><th class="n">Score</th></tr></thead>
+   <tbody>${rows}<tr class="tot"><td colspan="4">Round total ${rs.all ? `(${rs.sum} + ${SWEEP_PTS} sweep)` : ""}</td><td class="n">${rs.score}</td></tr></tbody></table></div>
+   <div style="font:13px var(--gw-mono)">Session <b>${tot}</b> / ${X()} · pace ${pace} · <span class="delta ${d >= 0 ? "up" : "dn"}">${d >= 0 ? "▲ +" + d + " ahead" : "▼ " + -d + " behind"}</span></div>
+   <div class="pace"><div class="fill" style="width:${Math.min(100, (tot / X()) * 100)}%"></div><div class="mark" style="left:${Math.min(100, (pace / X()) * 100)}%"><span style="${pace / X() > 0.8 ? "left:auto;right:0;transform:none" : ""}">PACE ${pace}</span></div></div>
+   ${d < 0 && left > 0 ? `<p style="font-size:13px">Need about <b>${need}</b> per round for the last ${left} round${left > 1 ? "s" : ""}.</p>` : ""}
+   <div class="btnrow"><button class="btn pri" type="button" id="goNext">${r === 9 ? "See results →" : "Next round →"}</button><button class="btn" type="button" id="goRev">Review boards</button></div>`,
+            { cls: "glow" },
+          );
+          $("goNext").onclick = () => nextRound(r);
+          $("goRev").onclick = () => showReview(() => showSummary(r));
+        }
+        function miniBoard(inf) {
+          return `<div class="mini-board">${inf.rows
+            .map((row, ri) => {
+              const win = inf.solved && ri === inf.rows.length - 1;
+              return `<div class="brow">${[...row.guess].map((c, j) => (win ? tileHTML(c, "G", false) : tileHTML(c, row.shown[j], row.glitchSlots.includes(j)))).join("")}</div>`;
+            })
+            .join("")}</div>`;
+        }
+        function showReview(back) {
+          let html = `<div class="kicker">Review</div><h2 id="mTitle">Boards</h2><p>Raw colours as you saw them; ⌁ marks glitched tiles.</p>`;
+          let any = false;
+          for (let r = 0; r < 10; r++) {
+            let ws = "";
+            for (let w = 0; w < 3; w++) {
+              const i = r * 3 + w,
+                W = S.words[i];
+              if (W.status !== "solved" && W.status !== "failed") continue;
+              any = true;
+              const inf = wordInfo(i);
+              ws += `<div class="w"><b>${inf.ans}</b> · ${inf.solved ? "+" + inf.score : "✕"}${miniBoard(inf)}</div>`;
+            }
+            if (ws)
+              html += `<div class="review-round"><h4>R${r + 1} · ${SCHED[r].tier}${S.roundScores[r] !== null ? " · " + S.roundScores[r] + " pts" : ""}</h4><div class="review-words">${ws}</div></div>`;
+          }
+          if (!any) html += "<p>No finished words yet.</p>";
+          html += `<div class="btnrow" style="margin-top:12px"><button class="btn pri" type="button" id="revBack">${back ? "Back" : "Close"}</button></div>`;
+          openModal(html, { cls: "wide" });
+          $("revBack").onclick = () => {
+            if (back) back();
+            else closeModal();
+          };
+        }
+        function sessionStats() {
+          let solved = 0,
+            effSum = 0,
+            gSum = 0,
+            mis = 0,
+            tiles = 0,
+            sweeps = 0;
+          const squares = [];
+          for (let i = 0; i < 30; i++) {
+            const inf = wordInfo(i);
+            if (inf.solved) {
+              solved++;
+              effSum += EFF[inf.g];
+              gSum += inf.g;
+            }
+            mis += inf.fooled;
+            inf.rows.forEach((row, ri) => {
+              if (ri < inf.rows.length - 1)
+                row.glitchSlots.forEach((j) => {
+                  if (row.truth[j] !== "Y") tiles++;
+                });
+            });
+            squares.push(
+              !inf.solved ? "⬛" : inf.g <= 3 ? "🟩" : inf.g <= 5 ? "🟨" : "🟧",
+            );
+          }
+          for (let r = 0; r < 10; r++) {
+            let a = true;
+            for (let w = 0; w < 3; w++)
+              if (S.words[r * 3 + w].status !== "solved") a = false;
+            if (a) sweeps++;
+          }
+          return {
+            solved,
+            acc: Math.round((solved / 30) * 100),
+            eff: Math.round((effSum / 90) * 100),
+            avg: solved ? (gSum / solved).toFixed(1) : "—",
+            decode: tiles ? Math.round((1 - mis / tiles) * 100) : 100,
+            mis,
+            tiles,
+            sweeps,
+            squares,
+          };
+        }
+        function recordStats(total, won) {
+          if (S.statsDone) return null;
+          const st = Object.assign(
+            { played: 0, won: 0, streak: 0, best: 0, high: {} },
+            store.get(K_STATS) || {},
+          );
+          st.played++;
+          if (won) {
+            st.won++;
+            st.streak++;
+            st.best = Math.max(st.best, st.streak);
+          } else st.streak = 0;
+          const prev = st.high[S.difficulty] || 0,
+            isHigh = total > prev;
+          if (isHigh) st.high[S.difficulty] = total;
+          store.set(K_STATS, st);
+          S.statsDone = true;
+          S.newHigh = isHigh;
+          save();
+          track("gw_finish", { difficulty: S.difficulty, total, won });
+          return st;
+        }
+        function shareText() {
+          const total = doneTotal(),
+            won = total >= X(),
+            s = sessionStats();
+          const lines = [];
+          for (let r = 0; r < 10; r += 5)
+            lines.push(
+              [0, 1, 2, 3, 4]
+                .map((k) =>
+                  s.squares.slice((r + k) * 3, (r + k) * 3 + 3).join(""),
+                )
+                .join(" "),
+            );
+          const url = /^https?:/.test(location.protocol)
+            ? "\n" + location.origin + location.pathname
+            : "";
+          return `GLITCHWORD ${S.mode === "daily" ? S.seed.replace("daily-", "") : "#" + S.seed.slice(2, 8)} · ${DSHORT[S.difficulty]}\n${total}/${X()} ${won ? "✅" : "❌"} Acc ${s.acc}% · Eff ${s.eff}%\n${lines.join("\n")}\n⌁ decoded ${s.tiles - s.mis}/${s.tiles}${url}`;
+        }
+        async function copyText(t) {
+          try {
+            await navigator.clipboard.writeText(t);
+            return true;
+          } catch (e) {
+            try {
+              const ta = document.createElement("textarea");
+              ta.value = t;
+              ta.style.position = "fixed";
+              ta.style.opacity = "0";
+              document.body.appendChild(ta);
+              ta.select();
+              const ok = document.execCommand("copy");
+              ta.remove();
+              return ok;
+            } catch (e2) {
+              return false;
+            }
+          }
+        }
+        function showResults() {
+          const total = doneTotal(),
+            won = total >= X(),
+            s = sessionStats();
+          if (!S.statsDone) (won ? SFX.victory : SFX.defeat)();
+          recordStats(total, won);
+          const st = Object.assign({ high: {} }, store.get(K_STATS) || {});
+          let worst = 0,
+            wd = Infinity;
+          for (let r = 0; r < 10; r++) {
+            const dd = (S.roundScores[r] || 0) - roundExpected(r);
+            if (dd < wd) {
+              wd = dd;
+              worst = r;
+            }
+          }
+          const sub = won
+            ? `${S.newHigh ? "New high score · " : ""}+${total - X()} over target`
+            : `${X() - total} short — Round ${worst + 1} cost the most vs pace`;
+          const text = shareText();
+          openModal(
+            `<div class="kicker ${won ? "win" : "loss"}">${won ? "Session beaten" : "Session failed"} · ${DLABEL[S.difficulty]}</div>
+   <h2 id="mTitle" style="font-size:34px">${total} <span style="font-size:16px;color:var(--gw-muted)">/ ${X()}</span></h2>
+   <p style="margin-top:0">${sub}</p>
+   <div class="stats">
+    <div><b>${s.acc}%</b><small>Accuracy</small></div><div><b>${s.eff}%</b><small>Efficiency</small></div><div><b>${s.decode}%</b><small>Decode</small></div>
+    <div><b>${s.avg}</b><small>Avg guesses</small></div><div><b>${s.sweeps}</b><small>Sweeps</small></div><div><b>${st.high[S.difficulty] || total}</b><small>High score</small></div>
+   </div>
+   <pre class="share" aria-label="Share text">${esc(text)}</pre>
+   <div class="btnrow"><button class="btn pri" type="button" id="rsShare">Share</button><button class="btn" type="button" id="rsCopy">Copy</button><button class="btn" type="button" id="rsRev">Review boards</button><button class="btn" type="button" id="rsNew">Play again</button></div>
+   <p style="font-size:12px;margin-top:14px">Built by Phoenix</p>`,
+            { cls: "glow" },
+          );
+          $("rsCopy").onclick = async () =>
+            toast((await copyText(text)) ? "Copied!" : "Copy failed");
+          $("rsShare").onclick = async () => {
+            if (navigator.share) {
+              try {
+                await navigator.share({ text });
+                return;
+              } catch (e) {
+                if (e && e.name === "AbortError") return;
+              }
+            }
+            toast(
+              (await copyText(text)) ? "Copied to clipboard" : "Copy failed",
+            );
+          };
+          $("rsRev").onclick = () => showReview(showResults);
+          $("rsNew").onclick = showMenu;
+        }
+
+        /* ================= events ================= */
+        $("kb").addEventListener("click", (e) => {
+          const b = e.target.closest(".key");
+          if (!b) return;
+          type(b.dataset.k);
+          b.blur();
+        });
+        document.addEventListener("keydown", (e) => {
+          if ($("ov").classList.contains("open")) {
+            if (e.key === "Escape" && modalClosable) closeModal();
+            return;
+          }
+          if (e.ctrlKey || e.metaKey || e.altKey) return;
+          if (S.phase === "wordDone" && e.key === "Enter") {
+            e.preventDefault();
+            advance();
+            return;
+          }
+          if (
+            e.target &&
+            e.target.closest &&
+            e.target.closest("button") &&
+            e.key === "Enter"
+          )
+            e.preventDefault();
+          if (e.key === "Enter") type("ENTER");
+          else if (e.key === "Backspace") type("BACK");
+          else if (/^[a-z]$/i.test(e.key)) type(e.key.toUpperCase());
+        });
+        $("btnSubmit").onclick = () => {
+          SFX.unlock();
+          type("ENTER");
+        };
+        const syncSound = () => {
+          const b = $("btnSound");
+          b.textContent = PREFS.sound ? "🔊" : "🔇";
+          b.setAttribute("aria-pressed", PREFS.sound);
+          b.title = PREFS.sound ? "Sound on" : "Sound off";
+        };
+        $("btnSound").onclick = () => {
+          PREFS.sound = !PREFS.sound;
+          savePrefs();
+          syncSound();
+          if (PREFS.sound) SFX.click();
+        };
+        syncSound();
+        $("btnHelp").onclick = showHelp;
+        $("legendChip").onclick = showCoach;
+        $("btnReview").onclick = () => showReview();
+        $("btnMenu").onclick = showMenu;
+        let rz;
+        addEventListener("resize", () => {
+          clearTimeout(rz);
+          rz = setTimeout(() => {
+            if (!busy) renderBoard();
+          }, 120);
+        });
+
+        /* embed mode */
+        const params = new URLSearchParams(location.search);
+        if (params.get("embed") === "1") {
+          document.body.classList.add("embed");
+          if ("ResizeObserver" in window)
+            new ResizeObserver(() => {
+              try {
+                parent.postMessage(
+                  {
+                    type: "glitchword:height",
+                    height: document.documentElement.scrollHeight,
+                  },
+                  "*",
+                );
+              } catch (e) {}
+            }).observe(document.body);
+        }
+
+        /* ================= boot ================= */
+        (function boot() {
+          const saved = store.get(K_SESSION);
+          if (
+            saved &&
+            saved.v === 1 &&
+            Array.isArray(saved.words) &&
+            saved.words.length === 30 &&
+            TARGET[saved.difficulty]
+          ) {
+            S = saved;
+            ANSWERS = buildAnswers(S.seed);
+            if (
+              S.mode === "daily" &&
+              S.seed !== "daily-" + today() &&
+              S.phase !== "done"
+            ) {
+              newSession(S.difficulty, "daily");
+            } else if (S.cur > 0 || S.words[0].rows.length)
+              setTimeout(
+                () =>
+                  toast(
+                    `Resumed · Round ${Math.floor(S.cur / 3) + 1} · ${liveTotal()} pts`,
+                  ),
+                300,
+              );
+          } else newSession("standard", "daily");
+          renderAll();
+          if (!PREFS.seenHelp) showHelp();
+          else if (S.phase === "play") maybeCoach();
+        })();
+      })();
+    </script>
+  </body>
+</html>
