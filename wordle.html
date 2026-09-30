@@ -1151,6 +1151,99 @@
           height: 44px;
         }
       }
+      /* ---- word meanings on the round summary ---- */
+      .defrow {
+        display: none;
+      }
+      .defrow.on {
+        display: table-row;
+      }
+      .defrow td {
+        padding-top: 0 !important;
+        border-top: 0 !important;
+      }
+      .def {
+        display: block;
+        font: 400 12.5px/1.45 var(--gw-sans);
+        color: var(--gw-muted);
+        padding-bottom: 6px;
+        max-width: 46ch;
+      }
+      .def::first-letter {
+        text-transform: uppercase;
+      }
+
+      /* ---- sticker album ---- */
+      .album {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+        gap: 12px;
+        margin: 14px 0 4px;
+      }
+      .album.compact {
+        grid-template-columns: repeat(auto-fit, minmax(96px, 110px));
+        justify-content: start;
+      }
+      .album .slot {
+        text-align: center;
+        background: var(--gw-surface-2);
+        border: 1px solid var(--gw-line);
+        border-radius: 12px;
+        padding: 10px 6px 9px;
+      }
+      .album .slot canvas {
+        width: 72px;
+        height: 72px;
+        display: block;
+        margin: 0 auto 7px;
+      }
+      .album .slot b {
+        display: block;
+        font: 600 11.5px/1.25 var(--gw-sans);
+        color: var(--gw-text);
+        min-height: 2.5em; /* two-line names must not shift the rarity label */
+      }
+      .album .slot small {
+        display: block;
+        margin-top: 3px;
+        font: 400 10px/1.35 var(--gw-sans);
+        color: var(--gw-muted);
+      }
+      .album .slot.locked b {
+        color: var(--gw-muted);
+      }
+      .album .slot.have {
+        border-color: var(--gw-line-2);
+      }
+      .album .slot small.r1 {
+        color: #7dd3fc;
+      }
+      .album .slot small.r2 {
+        color: #c084fc;
+      }
+      .album .slot small.r3 {
+        color: #fca5f1;
+      }
+      /* Epic/Foil motion lives in CSS so the canvas stays a single static paint */
+      .album .slot.have canvas {
+        position: relative;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .album .slot.have:hover canvas {
+          animation: gw-sheen 1.1s ease;
+        }
+      }
+      @keyframes gw-sheen {
+        from {
+          filter: brightness(1);
+        }
+        50% {
+          filter: brightness(1.28) saturate(1.15);
+        }
+        to {
+          filter: brightness(1);
+        }
+      }
     </style>
   </head>
   <body>
@@ -1194,6 +1287,15 @@
         title="Review boards"
       >
         ▦
+      </button>
+      <button
+        class="icon-btn"
+        id="btnAlbum"
+        type="button"
+        aria-label="Sticker collection"
+        title="Sticker collection"
+      >
+        ★
       </button>
       <button
         class="icon-btn"
@@ -1316,7 +1418,9 @@
         const MAXG = 6;
         const K_SESSION = "gw:v1:session",
           K_STATS = "gw:v1:stats",
-          K_PREFS = "gw:v1:prefs";
+          K_PREFS = "gw:v1:prefs",
+          K_STICKERS = "gw:v1:stickers",
+          K_DEFS = "gw:v1:defs";
 
         /* ================= word lists ================= */
         const NOT_ANSWER = new Set(
@@ -1670,6 +1774,9 @@
             draft: "",
             phase: "play",
             statsDone: false,
+            stickersDone: false,
+            stickerSeen: [],
+            freshStickers: [],
             words: Array.from({ length: 30 }, (_, i) => ({
               rows: [],
               status: i ? "locked" : "active",
@@ -2263,6 +2370,7 @@
           }
           save();
           renderAll();
+          checkStickersLive();
           if (info.solved) toast(`+${info.score}`, "", 1400);
           else {
             SFX.fail();
@@ -2449,7 +2557,7 @@
           let rows = "";
           for (let w = 0; w < 3; w++) {
             const inf = wordInfo(r * 3 + w);
-            rows += `<tr><td>${w + 1}</td><td><code>${inf.ans}</code></td><td class="n">${inf.solved ? inf.g : "✕"}</td><td class="n">${inf.k}${inf.fooled ? ` (fooled ×${inf.fooled})` : ""}</td><td class="n">${inf.score}</td></tr>`;
+            rows += `<tr><td>${w + 1}</td><td><code>${inf.ans}</code></td><td class="n">${inf.solved ? inf.g : "✕"}</td><td class="n">${inf.k}${inf.fooled ? ` (fooled ×${inf.fooled})` : ""}</td><td class="n">${inf.score}</td></tr><tr class="defrow" id="defrow-${inf.ans}"><td></td><td colspan="4"><span class="def" id="def-${inf.ans}"></span></td></tr>`;
           }
           const tot = S.roundScores
               .slice(0, r + 1)
@@ -2476,6 +2584,8 @@
           );
           $("goNext").onclick = () => nextRound(r);
           $("goRev").onclick = () => showReview(() => showSummary(r));
+          /* meanings arrive after the modal is already usable */
+          fillDefs([0, 1, 2].map((w) => wordInfo(r * 3 + w).ans));
         }
         function miniBoard(inf) {
           return `<div class="mini-board">${inf.rows
@@ -2633,6 +2743,22 @@
             ? `${S.newHigh ? "New high score · " : ""}+${total - X()} over target`
             : `${X() - total} short — Round ${worst + 1} cost the most vs pace`;
           const text = shareText();
+          /* rarity is final now, so this is the only place stickers persist */
+          if (!S.stickersDone) {
+            S.freshStickers = commitStickers(evalStickers(stickerCtx()));
+            S.stickersDone = true;
+            save();
+          }
+          const fresh = S.freshStickers || [];
+          const stickerBlock = fresh.length
+            ? `<div class="kicker" style="margin-top:16px">${fresh.length} sticker${fresh.length > 1 ? "s" : ""} earned</div>
+   <div class="album compact">${fresh
+     .map(
+       (f) =>
+         `<div class="slot have"><canvas width="176" height="176" data-st="${f.id}" data-r="${f.rarity}" data-lock="0" aria-hidden="true"></canvas><b>${esc(STICKER_BY[f.id].name)}</b><small class="r${f.rarity}">${RARITY[f.rarity]}${f.isNew ? "" : " · upgraded"}</small></div>`,
+     )
+     .join("")}</div>`
+            : "";
           openModal(
             `<div class="kicker ${won ? "win" : "loss"}">${won ? "Session beaten" : "Session failed"} · ${DLABEL[S.difficulty]}</div>
    <h2 id="mTitle" style="font-size:34px">${total} <span style="font-size:16px;color:var(--gw-muted)">/ ${X()}</span></h2>
@@ -2641,11 +2767,22 @@
     <div><b>${s.acc}%</b><small>Accuracy</small></div><div><b>${s.eff}%</b><small>Efficiency</small></div><div><b>${s.decode}%</b><small>Decode</small></div>
     <div><b>${s.avg}</b><small>Avg guesses</small></div><div><b>${s.sweeps}</b><small>Sweeps</small></div><div><b>${st.high[S.difficulty] || total}</b><small>High score</small></div>
    </div>
+   ${stickerBlock}
    <pre class="share" aria-label="Share text">${esc(text)}</pre>
-   <div class="btnrow"><button class="btn pri" type="button" id="rsShare">Share</button><button class="btn" type="button" id="rsCopy">Copy</button><button class="btn" type="button" id="rsRev">Review boards</button><button class="btn" type="button" id="rsNew">Play again</button></div>
+   <div class="btnrow"><button class="btn pri" type="button" id="rsShare">Share</button><button class="btn" type="button" id="rsImg">Share image</button><button class="btn" type="button" id="rsCopy">Copy</button><button class="btn" type="button" id="rsAlbum">Stickers</button><button class="btn" type="button" id="rsRev">Review boards</button><button class="btn" type="button" id="rsNew">Play again</button></div>
    <p style="font-size:12px;margin-top:14px">Built by Phoenix</p>`,
             { cls: "glow" },
           );
+          paintSlots($("modal"));
+          $("rsImg").onclick = async () => {
+            const b = $("rsImg");
+            b.disabled = true;
+            b.textContent = "Building…";
+            await shareCard(fresh);
+            b.disabled = false;
+            b.textContent = "Share image";
+          };
+          $("rsAlbum").onclick = () => showAlbum(showResults);
           $("rsCopy").onclick = async () =>
             toast((await copyText(text)) ? "Copied!" : "Copy failed");
           $("rsShare").onclick = async () => {
@@ -2663,6 +2800,841 @@
           };
           $("rsRev").onclick = () => showReview(showResults);
           $("rsNew").onclick = showMenu;
+        }
+
+        /* ================= word meanings ================= */
+        /* Cached one-line glosses for answer words. Decoration only: every
+           failure path leaves the summary modal exactly as it is today. */
+        const defCache = () => store.get(K_DEFS) || {};
+        const POS = { n: "noun", v: "verb", adj: "adjective", adv: "adverb" };
+        const tidyDef = (pos, text) =>
+          ((POS[pos] ? POS[pos] + " · " : "") +
+            String(text).replace(/\s+/g, " ").trim()).slice(0, 118);
+        async function getJSON(url, ms) {
+          const ac = new AbortController(),
+            t = setTimeout(() => ac.abort(), ms);
+          try {
+            const res = await fetch(url, { signal: ac.signal });
+            clearTimeout(t);
+            return res.ok ? await res.json() : null;
+          } catch (e) {
+            clearTimeout(t);
+            return null;
+          }
+        }
+        /* Datamuse: fast, sends CORS headers, no key, Wiktionary-sourced.
+           dictionaryapi.dev was tried as a fallback and dropped — it serves no
+           Access-Control-Allow-Origin, so a browser can never read it. */
+        async function fetchDef(w) {
+          const cache = defCache();
+          if (Object.prototype.hasOwnProperty.call(cache, w)) return cache[w];
+          const lw = w.toLowerCase();
+          const dm = await getJSON(
+            "https://api.datamuse.com/words?max=1&md=d&sp=" +
+              encodeURIComponent(lw),
+            4000,
+          );
+          /* Only cache when the source actually answered. A network failure
+             must stay retryable rather than poisoning the cache with a blank. */
+          if (!dm) return "";
+          let out = "";
+          const hit = dm[0];
+          if (hit && hit.word === lw && hit.defs && hit.defs.length) {
+            const parts = String(hit.defs[0]).split("\t");
+            out =
+              parts.length > 1
+                ? tidyDef(parts[0], parts.slice(1).join(" "))
+                : tidyDef("", parts[0]);
+          }
+          const c2 = defCache();
+          c2[w] = out;
+          store.set(K_DEFS, c2);
+          return out;
+        }
+        function fillDefs(words) {
+          words.forEach((w) => {
+            fetchDef(w)
+              .then((d) => {
+                if (!d) return;
+                const row = document.getElementById("defrow-" + w),
+                  el = document.getElementById("def-" + w);
+                if (!row || !el) return; // player already advanced
+                el.textContent = d;
+                row.classList.add("on");
+              })
+              .catch(() => {});
+          });
+        }
+
+        /* ================= stickers ================= */
+        const RARITY = ["Common", "Rare", "Epic", "Foil"];
+        const rarityOf = (avg) =>
+          avg < 1.5 ? 3 : avg < 2.5 ? 2 : avg < 3.5 ? 1 : 0;
+
+        function flawlessRound(c) {
+          for (let r = 0; r < 10; r++) {
+            let ok = true;
+            for (let w = 0; w < 3; w++) {
+              const i = c.infos[r * 3 + w];
+              if (!i.solved || i.g > 3) {
+                ok = false;
+                break;
+              }
+            }
+            if (ok) return r;
+          }
+          return -1;
+        }
+        function trailedLate() {
+          for (let r = 6; r < 10; r++) {
+            if (S.roundScores[r] === null) continue;
+            const tot = S.roundScores
+              .slice(0, r + 1)
+              .reduce((s, v) => s + (v || 0), 0);
+            if (tot < paceAt(r + 1)) return true;
+          }
+          return false;
+        }
+        const solvedIdx = (c) => c.infos.filter((i) => i.solved).map((i) => i.i);
+
+        const STICKERS = [
+          {
+            id: "glitch",
+            name: "Glitch Hunter",
+            crit: "Read 5 glitched tiles correctly in one session",
+            check: (c) => c.s.tiles - c.s.mis >= 5,
+            words: (c) => c.infos.filter((i) => i.solved && i.k > 0).map((i) => i.i),
+          },
+          {
+            id: "flawless",
+            name: "Flawless Logic",
+            crit: "Solve all 3 words of a round in 3 guesses or fewer",
+            check: (c) => flawlessRound(c) >= 0,
+            words: (c) => {
+              const r = flawlessRound(c);
+              return r < 0 ? [] : [0, 1, 2].map((w) => r * 3 + w);
+            },
+          },
+          {
+            id: "roller",
+            name: "High Roller",
+            crit: "Score 300 or more on a single word",
+            check: (c) => c.infos.some((i) => i.score >= 300),
+            words: (c) => {
+              const b = c.infos
+                .filter((i) => i.score >= 300)
+                .sort((x, y) => y.score - x.score);
+              return b.length ? [b[0].i] : [];
+            },
+          },
+          {
+            id: "first",
+            name: "First Light",
+            crit: "Complete your first full session, win or lose",
+            check: (c) => c.complete && c.life.played >= 1,
+            words: solvedIdx,
+          },
+          {
+            id: "speed",
+            name: "Speed Run",
+            crit: "Solve three words on the first guess in one session",
+            check: (c) => c.infos.filter((i) => i.solved && i.g === 1).length >= 3,
+            words: (c) =>
+              c.infos.filter((i) => i.solved && i.g === 1).map((i) => i.i),
+          },
+          {
+            id: "comeback",
+            name: "Comeback Kid",
+            crit: "Win after trailing pace at round 7 or later",
+            check: (c) => c.complete && c.won && trailedLate(),
+            words: solvedIdx,
+          },
+          {
+            id: "zenith",
+            name: "Z Is for Zenith",
+            crit: "Solve a word containing Q, X or Z",
+            check: (c) => c.infos.some((i) => i.solved && /[QXZ]/.test(i.ans)),
+            words: (c) =>
+              c.infos.filter((i) => i.solved && /[QXZ]/.test(i.ans)).map((i) => i.i),
+          },
+          {
+            id: "iron",
+            name: "Iron Will",
+            crit: "Finish an Expert session, win or lose",
+            check: (c) => c.complete && c.diff === "expert",
+            words: solvedIdx,
+          },
+          {
+            id: "deduce",
+            name: "Deduction Master",
+            crit: "Finish a session with zero glitch misreads",
+            check: (c) => c.complete && c.s.mis === 0 && c.s.tiles > 0,
+            words: (c) => c.infos.filter((i) => i.solved && i.k > 0).map((i) => i.i),
+          },
+          {
+            id: "century",
+            name: "Century Club",
+            crit: "Play 100 sessions",
+            check: (c) => c.life.played >= 100,
+            words: solvedIdx,
+          },
+        ];
+        const STICKER_BY = {};
+        STICKERS.forEach((s) => (STICKER_BY[s.id] = s));
+
+        /* One context, built in one place — every criterion reads from this
+           and nothing else, so engine changes have a single blast radius. */
+        function stickerCtx() {
+          const infos = [];
+          for (let i = 0; i < 30; i++) infos.push(wordInfo(i));
+          const total = doneTotal();
+          return {
+            infos,
+            s: sessionStats(),
+            life: Object.assign(
+              { played: 0, won: 0, high: {} },
+              store.get(K_STATS) || {},
+            ),
+            total,
+            won: total >= X(),
+            diff: S.difficulty,
+            complete: S.phase === "done",
+          };
+        }
+        function stickerRarity(st, c) {
+          const ws = st
+            .words(c)
+            .map((i) => c.infos[i])
+            .filter((i) => i && i.solved);
+          if (!ws.length) return 0;
+          return rarityOf(ws.reduce((s, i) => s + i.g, 0) / ws.length);
+        }
+        function evalStickers(c) {
+          const out = [];
+          STICKERS.forEach((st) => {
+            if (st.check(c)) out.push({ id: st.id, rarity: stickerRarity(st, c) });
+          });
+          return out;
+        }
+        const getAlbum = () => Object.assign({}, store.get(K_STICKERS) || {});
+        /* Written only at session end, when rarity is final. */
+        function commitStickers(earned) {
+          const al = getAlbum(),
+            fresh = [];
+          earned.forEach((e) => {
+            const prev = al[e.id];
+            if (prev === undefined) {
+              fresh.push({ ...e, isNew: true });
+              al[e.id] = e.rarity;
+            } else if (e.rarity > prev) {
+              fresh.push({ ...e, isNew: false });
+              al[e.id] = e.rarity;
+            }
+          });
+          if (fresh.length) store.set(K_STICKERS, al);
+          return fresh;
+        }
+        /* Mid-session: toast for the feel of it, persist nothing. */
+        function checkStickersLive() {
+          if (!S.stickerSeen) S.stickerSeen = [];
+          const c = stickerCtx();
+          evalStickers(c).forEach((e) => {
+            if (S.stickerSeen.includes(e.id)) return;
+            S.stickerSeen.push(e.id);
+            const st = STICKER_BY[e.id];
+            if (st) toast("★ " + st.name, "", 2200);
+          });
+          saveSoon();
+        }
+
+        /* ================= sticker artwork ================= */
+        /* One renderer for both the album and the share card, so the two can
+           never drift. All art is drawn in a 100x100 space then scaled. */
+        const RCOL = ["#8b93a3", "#7dd3fc", "#c084fc", "#fca5f1"];
+        function rrect(c, x, y, w, h, r) {
+          c.beginPath();
+          c.moveTo(x + r, y);
+          c.arcTo(x + w, y, x + w, y + h, r);
+          c.arcTo(x + w, y + h, x, y + h, r);
+          c.arcTo(x, y + h, x, y, r);
+          c.arcTo(x, y, x + w, y, r);
+          c.closePath();
+        }
+        function poly(c, pts) {
+          c.beginPath();
+          pts.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])));
+          c.closePath();
+        }
+        const ART = {
+          glitch(c) {
+            c.fillStyle = "#0a0d14";
+            rrect(c, 18, 18, 64, 64, 10);
+            c.fill();
+            c.strokeStyle = "#22d3ee";
+            c.lineWidth = 2.4;
+            c.lineCap = "round";
+            [
+              [[50, 20], [44, 44], [58, 52], [48, 80]],
+              [[26, 34], [44, 44]],
+              [[58, 52], [76, 42]],
+              [[30, 68], [46, 58]],
+            ].forEach((path) => {
+              c.beginPath();
+              path.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])));
+              c.stroke();
+            });
+          },
+          flawless(c) {
+            const pts = [];
+            for (let i = 0; i < 6; i++) {
+              const a = (Math.PI / 3) * i - Math.PI / 2;
+              pts.push([50 + 32 * Math.cos(a), 50 + 32 * Math.sin(a)]);
+            }
+            const g = c.createLinearGradient(20, 20, 80, 80);
+            g.addColorStop(0, "#f7e08a");
+            g.addColorStop(1, "#c9922a");
+            poly(c, pts);
+            c.strokeStyle = g;
+            c.lineWidth = 4.5;
+            c.stroke();
+            poly(
+              c,
+              pts.map((p) => [50 + (p[0] - 50) * 0.55, 50 + (p[1] - 50) * 0.55]),
+            );
+            c.fillStyle = "rgba(227,179,65,.35)";
+            c.fill();
+          },
+          roller(c) {
+            const tiles = [
+              [30, 62, "#2a313d"],
+              [26, 44, "#39424f"],
+              [22, 26, "#e3b341"],
+            ];
+            tiles.forEach(([x, y, col], i) => {
+              c.fillStyle = col;
+              rrect(c, x, y, 48, 18, 4);
+              c.fill();
+              if (i === 2) {
+                c.shadowColor = "#e3b341";
+                c.shadowBlur = 14;
+                c.fill();
+                c.shadowBlur = 0;
+                c.fillStyle = "#1b1405";
+                c.font = "bold 12px ui-monospace, monospace";
+                c.textAlign = "center";
+                c.textBaseline = "middle";
+                c.fillText("300", x + 24, y + 10);
+              }
+            });
+          },
+          first(c) {
+            c.save();
+            rrect(c, 18, 18, 64, 64, 10);
+            c.clip();
+            const g = c.createLinearGradient(0, 18, 0, 82);
+            g.addColorStop(0, "#f9a826");
+            g.addColorStop(0.55, "#f2643f");
+            g.addColorStop(1, "#2a1a3a");
+            c.fillStyle = g;
+            c.fillRect(18, 18, 64, 64);
+            c.fillStyle = "rgba(255,240,200,.9)";
+            c.beginPath();
+            c.arc(50, 62, 16, Math.PI, 0);
+            c.fill();
+            c.restore();
+            c.strokeStyle = "#fff8e7";
+            c.lineWidth = 5;
+            c.lineCap = "round";
+            c.lineJoin = "round";
+            c.beginPath();
+            c.moveTo(36, 50);
+            c.lineTo(46, 60);
+            c.lineTo(66, 36);
+            c.stroke();
+          },
+          speed(c) {
+            c.strokeStyle = "#6b7280";
+            c.lineWidth = 3;
+            c.lineCap = "round";
+            [22, 34, 46].forEach((y, i) => {
+              c.globalAlpha = 0.3 + i * 0.2;
+              c.beginPath();
+              c.moveTo(12, y + 14);
+              c.lineTo(30 - i * 4, y + 14);
+              c.stroke();
+            });
+            c.globalAlpha = 1;
+            c.fillStyle = "#e6e9ee";
+            c.beginPath();
+            c.arc(58, 54, 24, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = "#151a22";
+            c.beginPath();
+            c.arc(58, 54, 19, 0, Math.PI * 2);
+            c.fill();
+            c.strokeStyle = "#22d3ee";
+            c.lineWidth = 3;
+            c.beginPath();
+            c.moveTo(58, 54);
+            c.lineTo(58, 40);
+            c.stroke();
+            c.fillStyle = "#e6e9ee";
+            rrect(c, 53, 24, 10, 6, 2);
+            c.fill();
+          },
+          comeback(c) {
+            c.fillStyle = "#2a313d";
+            rrect(c, 32, 60, 36, 24, 5);
+            c.fill();
+            c.strokeStyle = "#0a0d14";
+            c.lineWidth = 2;
+            c.beginPath();
+            c.moveTo(44, 60);
+            c.lineTo(50, 72);
+            c.lineTo(42, 84);
+            c.stroke();
+            const g = c.createLinearGradient(50, 12, 50, 60);
+            g.addColorStop(0, "#ffd166");
+            g.addColorStop(1, "#ff3d7f");
+            c.fillStyle = g;
+            poly(c, [
+              [50, 12],
+              [74, 40],
+              [60, 38],
+              [68, 58],
+              [50, 44],
+              [32, 58],
+              [40, 38],
+              [26, 40],
+            ]);
+            c.fill();
+          },
+          zenith(c) {
+            const g = c.createLinearGradient(18, 18, 82, 82);
+            g.addColorStop(0, "#6d28d9");
+            g.addColorStop(1, "#3b0764");
+            c.fillStyle = g;
+            rrect(c, 18, 18, 64, 64, 10);
+            c.fill();
+            c.fillStyle = "#f5e8ff";
+            c.font = "bold 46px ui-monospace, monospace";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText("Z", 50, 52);
+          },
+          iron(c) {
+            const g = c.createLinearGradient(30, 16, 70, 84);
+            g.addColorStop(0, "#9aa3b2");
+            g.addColorStop(0.5, "#5b6472");
+            g.addColorStop(1, "#8892a0");
+            c.fillStyle = g;
+            c.beginPath();
+            c.moveTo(50, 16);
+            c.lineTo(78, 28);
+            c.lineTo(78, 54);
+            c.quadraticCurveTo(78, 74, 50, 86);
+            c.quadraticCurveTo(22, 74, 22, 54);
+            c.lineTo(22, 28);
+            c.closePath();
+            c.fill();
+            c.strokeStyle = "#39424f";
+            c.lineWidth = 2.5;
+            c.stroke();
+            c.fillStyle = "#39424f";
+            [
+              [32, 32],
+              [68, 32],
+              [32, 60],
+              [68, 60],
+            ].forEach(([x, y]) => {
+              c.beginPath();
+              c.arc(x, y, 3, 0, Math.PI * 2);
+              c.fill();
+            });
+          },
+          deduce(c) {
+            c.strokeStyle = "#39424f";
+            c.lineWidth = 2;
+            for (let i = 0; i < 3; i++)
+              for (let j = 0; j < 3; j++) {
+                rrect(c, 20 + i * 16, 20 + j * 16, 13, 13, 2);
+                c.stroke();
+              }
+            c.strokeStyle = "#22d3ee";
+            c.lineWidth = 4;
+            c.beginPath();
+            c.arc(56, 48, 20, 0, Math.PI * 2);
+            c.stroke();
+            c.fillStyle = "rgba(34,211,238,.16)";
+            c.fill();
+            c.lineCap = "round";
+            c.beginPath();
+            c.moveTo(70, 62);
+            c.lineTo(84, 78);
+            c.stroke();
+            c.strokeStyle = "#a5f3fc";
+            c.lineWidth = 2;
+            c.beginPath();
+            c.moveTo(46, 40);
+            c.lineTo(58, 56);
+            c.stroke();
+          },
+          century(c) {
+            c.strokeStyle = "#e3b341";
+            c.lineWidth = 3.5;
+            c.lineCap = "round";
+            [-1, 1].forEach((s) => {
+              c.beginPath();
+              c.arc(50, 52, 34, s > 0 ? -0.35 : Math.PI + 0.35, s > 0 ? 1.2 : Math.PI - 1.2, s < 0);
+              c.stroke();
+            });
+            c.fillStyle = "#e3b341";
+            c.font = "bold 30px ui-monospace, monospace";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText("100", 50, 54);
+          },
+        };
+        /* Art is painted on its own surface: the individual ART functions set
+           globalAlpha/shadow freely, so compositing is the only reliable way
+           to dim a locked slot without each function having to cooperate. */
+        function artSurface(id, size) {
+          const off = document.createElement("canvas");
+          off.width = off.height = Math.max(1, Math.round(size));
+          const g = off.getContext("2d");
+          if (g) {
+            g.scale(size / 100, size / 100);
+            (ART[id] || (() => {}))(g);
+          }
+          return off;
+        }
+        function drawSticker(c, id, size, rarity, locked) {
+          const k = size / 100;
+          c.save();
+          c.save();
+          c.scale(k, k);
+          c.fillStyle = locked ? "#10141c" : "#141922";
+          rrect(c, 6, 6, 88, 88, 14);
+          c.fill();
+          c.restore();
+          if (locked) {
+            c.save();
+            c.globalAlpha = 0.14;
+            c.filter = "grayscale(1)";
+            c.drawImage(artSurface(id, size), 0, 0);
+            c.restore();
+            c.save();
+            c.scale(k, k);
+            c.strokeStyle = "#252c37";
+            c.lineWidth = 2;
+            rrect(c, 6, 6, 88, 88, 14);
+            c.stroke();
+            c.restore();
+            c.restore();
+            return;
+          }
+          c.drawImage(artSurface(id, size), 0, 0);
+          c.scale(k, k);
+          /* rarity treatment */
+          const r = rarity | 0;
+          if (r === 0) {
+            c.strokeStyle = "#2a313d";
+            c.lineWidth = 2;
+          } else if (r === 1) {
+            const g = c.createLinearGradient(6, 6, 94, 94);
+            g.addColorStop(0, "#dbeafe");
+            g.addColorStop(0.5, "#7dd3fc");
+            g.addColorStop(1, "#3b82f6");
+            c.strokeStyle = g;
+            c.lineWidth = 3;
+          } else if (r === 2) {
+            const g = c.createLinearGradient(6, 94, 94, 6);
+            g.addColorStop(0, "#c084fc");
+            g.addColorStop(0.5, "#f0abfc");
+            g.addColorStop(1, "#818cf8");
+            c.strokeStyle = g;
+            c.lineWidth = 3.5;
+          } else {
+            const g = c.createLinearGradient(6, 6, 94, 94);
+            [
+              "#ff5f6d",
+              "#ffc371",
+              "#7bed9f",
+              "#70a1ff",
+              "#c56cf0",
+              "#ff5f6d",
+            ].forEach((col, i, a) => g.addColorStop(i / (a.length - 1), col));
+            c.strokeStyle = g;
+            c.lineWidth = 4;
+          }
+          rrect(c, 6, 6, 88, 88, 14);
+          c.stroke();
+          if (r >= 2) {
+            c.save();
+            rrect(c, 6, 6, 88, 88, 14);
+            c.clip();
+            const sh = c.createLinearGradient(0, 100, 100, 0);
+            sh.addColorStop(0, "rgba(255,255,255,0)");
+            sh.addColorStop(0.45, "rgba(255,255,255,.1)");
+            sh.addColorStop(0.5, "rgba(255,255,255,.28)");
+            sh.addColorStop(0.55, "rgba(255,255,255,.1)");
+            sh.addColorStop(1, "rgba(255,255,255,0)");
+            c.fillStyle = sh;
+            c.fillRect(6, 6, 88, 88);
+            c.restore();
+          }
+          c.restore();
+        }
+        function paintSlots(root) {
+          root.querySelectorAll("canvas[data-st]").forEach((cv) => {
+            const g = cv.getContext("2d");
+            if (g)
+              drawSticker(
+                g,
+                cv.dataset.st,
+                cv.width,
+                +cv.dataset.r,
+                cv.dataset.lock === "1",
+              );
+          });
+        }
+
+        /* ================= album ================= */
+        function showAlbum(back) {
+          const al = getAlbum(),
+            have = Object.keys(al).length;
+          openModal(
+            `<div class="kicker">Collection</div>
+   <h2 id="mTitle">Stickers <span style="font-size:15px;color:var(--gw-muted)">${have} / ${STICKERS.length}</span></h2>
+   <p style="margin-top:0;font-size:13px">Rarity is set by how few guesses the qualifying words took — it is skill, not luck. Earning a sticker again at a better rarity upgrades the slot.</p>
+   <div class="album">${STICKERS.map((st) => {
+     const un = al[st.id] !== undefined,
+       rv = un ? al[st.id] : 0;
+     return `<div class="slot${un ? " have" : " locked"}"><canvas width="176" height="176" data-st="${st.id}" data-r="${rv}" data-lock="${un ? 0 : 1}" aria-hidden="true"></canvas><b>${esc(st.name)}</b><small>${un ? RARITY[rv] : esc(st.crit)}</small></div>`;
+   }).join("")}</div>
+   <div class="btnrow"><button class="btn pri" type="button" id="alBack">Close</button></div>`,
+            { cls: "wide" },
+          );
+          paintSlots($("modal"));
+          $("alBack").onclick = back ? () => back() : closeModal;
+        }
+
+        /* ================= share card ================= */
+        const CARD = 1080;
+        function cardTier(r) {
+          const sc = S.roundScores[r];
+          if (sc === null || sc === undefined) return "#2a313d";
+          const exp = roundExpected(r);
+          if (sc >= exp) return "#3fb950";
+          if (sc >= exp * 0.8) return "#d4a72c";
+          return "#f85149";
+        }
+        async function buildCard(fresh) {
+          const cv = document.createElement("canvas");
+          cv.width = CARD * 2;
+          cv.height = CARD * 2;
+          const c = cv.getContext("2d");
+          c.scale(2, 2);
+          try {
+            await document.fonts.ready;
+          } catch (e) {
+            /* fonts API unsupported — system stack still renders */
+          }
+          const mono = '"JetBrains Mono", ui-monospace, monospace',
+            sans = '"Inter", system-ui, sans-serif';
+          const total = doneTotal(),
+            tgt = X(),
+            won = total >= tgt;
+
+          /* fixed dark palette regardless of the player's theme */
+          c.fillStyle = "#0a0d14";
+          c.fillRect(0, 0, CARD, CARD);
+          const vg = c.createRadialGradient(540, 420, 80, 540, 540, 760);
+          vg.addColorStop(0, "rgba(34,211,238,.10)");
+          vg.addColorStop(1, "rgba(0,0,0,0)");
+          c.fillStyle = vg;
+          c.fillRect(0, 0, CARD, CARD);
+          c.fillStyle = "rgba(255,255,255,.022)";
+          for (let y = 0; y < CARD; y += 4) c.fillRect(0, y, CARD, 1);
+
+          c.textBaseline = "alphabetic";
+          /* --- top --- */
+          c.textAlign = "left";
+          c.fillStyle = "#22d3ee";
+          c.font = "700 30px " + mono;
+          c.fillText("G L I T C H W O R D", 80, 96);
+          c.fillStyle = won ? "#3fb950" : "#f85149";
+          c.font = "600 22px " + sans;
+          c.fillText(
+            (won ? "SESSION BEATEN" : "SESSION FAILED") +
+              "  ·  " +
+              DLABEL[S.difficulty].toUpperCase(),
+            80,
+            136,
+          );
+          c.fillStyle = "#e6e9ee";
+          c.font = "700 118px " + mono;
+          c.fillText(String(total), 80, 268);
+          const tw = c.measureText(String(total)).width;
+          c.fillStyle = "#9aa3b2";
+          c.font = "500 34px " + mono;
+          c.fillText("/ " + tgt, 96 + tw, 268);
+
+          /* progress ring */
+          const pct = Math.max(0, Math.min(1, total / tgt)),
+            cx = 908,
+            cy = 196,
+            rad = 76;
+          c.lineWidth = 16;
+          c.strokeStyle = "#1c222c";
+          c.beginPath();
+          c.arc(cx, cy, rad, 0, Math.PI * 2);
+          c.stroke();
+          c.strokeStyle = won ? "#3fb950" : "#22d3ee";
+          c.lineCap = "round";
+          c.beginPath();
+          c.arc(cx, cy, rad, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+          c.stroke();
+          c.textAlign = "center";
+          c.fillStyle = "#e6e9ee";
+          c.font = "700 34px " + mono;
+          c.fillText(Math.round(pct * 100) + "%", cx, cy + 12);
+
+          /* --- middle: round strip --- */
+          c.textAlign = "left";
+          c.fillStyle = "#9aa3b2";
+          c.font = "600 20px " + mono;
+          c.fillText("ROUNDS", 80, 392);
+          const x0 = 80,
+            wTot = 920,
+            gap = 10,
+            segW = (wTot - gap * 9) / 10;
+          for (let r = 0; r < 10; r++) {
+            const x = x0 + r * (segW + gap);
+            c.fillStyle = cardTier(r);
+            rrect(c, x, 414, segW, 62, 8);
+            c.fill();
+            c.fillStyle = "rgba(10,13,20,.8)";
+            c.font = "700 20px " + mono;
+            c.textAlign = "center";
+            c.fillText(String(r + 1), x + segW / 2, 453);
+          }
+          c.textAlign = "left";
+          c.fillStyle = "#6b7280";
+          c.font = "400 17px " + sans;
+          c.fillText("green: at or above pace · yellow: close · red: below", 80, 508);
+
+          /* --- stickers --- */
+          c.fillStyle = "#9aa3b2";
+          c.font = "600 20px " + mono;
+          c.fillText(fresh.length ? "UNLOCKED THIS SESSION" : "STICKERS", 80, 574);
+          if (fresh.length) {
+            const show = fresh.slice(0, 4),
+              sz = 150,
+              sgap = 42,
+              totW = show.length * sz + (show.length - 1) * sgap,
+              sx = (CARD - totW) / 2;
+            show.forEach((f, i) => {
+              const x = sx + i * (sz + sgap);
+              c.save();
+              c.translate(x, 610);
+              drawSticker(c, f.id, sz, f.rarity, false);
+              c.restore();
+              c.textAlign = "center";
+              c.fillStyle = "#e6e9ee";
+              c.font = "600 21px " + sans;
+              c.fillText(STICKER_BY[f.id].name, x + sz / 2, 796);
+              c.fillStyle = RCOL[f.rarity];
+              c.font = "600 18px " + mono;
+              c.fillText(RARITY[f.rarity].toUpperCase(), x + sz / 2, 822);
+            });
+            if (fresh.length > show.length) {
+              c.textAlign = "left";
+              c.fillStyle = "#6b7280";
+              c.font = "500 21px " + mono;
+              c.fillText("+ " + (fresh.length - show.length) + " more", 80, 862);
+            }
+          } else {
+            c.fillStyle = "#6b7280";
+            c.font = "400 26px " + sans;
+            c.fillText("No new stickers this session.", 80, 626);
+            const al = getAlbum();
+            c.fillStyle = "#9aa3b2";
+            c.font = "500 24px " + mono;
+            c.fillText(
+              "Collection: " + Object.keys(al).length + " / " + STICKERS.length,
+              80,
+              668,
+            );
+          }
+
+          /* --- footer --- */
+          const st2 = sessionStats();
+          c.textAlign = "left";
+          c.fillStyle = "#9aa3b2";
+          c.font = "500 23px " + mono;
+          c.fillText(
+            st2.solved +
+              "/30 solved  ·  avg " +
+              st2.avg +
+              " guesses  ·  decode " +
+              st2.decode +
+              "%",
+            80,
+            922,
+          );
+          c.strokeStyle = "#1c222c";
+          c.lineWidth = 2;
+          c.beginPath();
+          c.moveTo(80, 954);
+          c.lineTo(1000, 954);
+          c.stroke();
+          c.fillStyle = "#22d3ee";
+          c.font = "700 24px " + mono;
+          c.fillText("GLITCHWORD", 80, 1002);
+          c.fillStyle = "#6b7280";
+          c.font = "400 21px " + sans;
+          c.fillText("Ten rounds. Thirty words. The tiles lie.", 80, 1032);
+          c.textAlign = "right";
+          c.fillStyle = "#9aa3b2";
+          c.font = "500 21px " + mono;
+          c.fillText(location.host || "glitchword", 1000, 1020);
+
+          return new Promise((res) => cv.toBlob(res, "image/png"));
+        }
+        async function shareCard(fresh) {
+          let blob = null;
+          try {
+            blob = await buildCard(fresh);
+          } catch (e) {
+            blob = null;
+          }
+          if (!blob) {
+            toast("Could not build the image");
+            return;
+          }
+          const file = new File([blob], "glitchword.png", { type: "image/png" });
+          if (
+            navigator.canShare &&
+            navigator.canShare({ files: [file] }) &&
+            navigator.share
+          ) {
+            try {
+              await navigator.share({ files: [file], title: "Glitchword" });
+              return;
+            } catch (e) {
+              if (e && e.name === "AbortError") return;
+            }
+          }
+          const url = URL.createObjectURL(blob),
+            a = document.createElement("a");
+          a.href = url;
+          a.download = "glitchword.png";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          toast("Saved — add it from your camera roll", "", 3200);
         }
 
         /* ================= events ================= */
@@ -2714,6 +3686,7 @@
         $("btnHelp").onclick = showHelp;
         $("legendChip").onclick = showCoach;
         $("btnReview").onclick = () => showReview();
+        $("btnAlbum").onclick = () => showAlbum();
         $("btnMenu").onclick = showMenu;
         let rz;
         addEventListener("resize", () => {
@@ -2772,6 +3745,7 @@
           if (!PREFS.seenHelp) showHelp();
           else if (S.phase === "play") maybeCoach();
         })();
+
       })();
     </script>
   </body>

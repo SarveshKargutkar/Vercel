@@ -129,9 +129,26 @@ persist a rarity that later changes.
 
 ### Source
 
-`https://api.dictionaryapi.dev/api/v2/entries/en/<word>`, taking
-`[0].meanings[0].definitions[0].definition` plus `partOfSpeech`, trimmed to
-roughly 110 characters.
+`https://api.datamuse.com/words?max=1&md=d&sp=<word>`, taking `defs[0]`, which
+arrives as `"<pos>\t<definition>"`. The part-of-speech code is expanded
+(`n` -> noun, `v` -> verb, `adj`, `adv`) and the whole line is trimmed to 118
+characters. The result is only used when the returned `word` exactly matches
+the query, so a near-spelling match never produces a wrong definition.
+
+`api.dictionaryapi.dev` was the original choice and was **replaced during
+implementation**. Two findings, in order:
+
+1. It was unreachable from the development machine entirely (connections timed
+   out; DNS resolved, general connectivity was fine).
+2. When it did respond, it served **no `Access-Control-Allow-Origin` header**,
+   so a browser can never read it. It was briefly kept as a fallback and then
+   removed, since a source a browser cannot read only adds latency and console
+   noise on every cache miss.
+
+Datamuse sends CORS headers (verified: it reflects the request `Origin`),
+responds in ~0.5s versus Wiktionary's ~12s, needs no key, and is
+Wiktionary-sourced. It also had definitions for words the original source
+missed.
 
 Bundling ~2,000 offline glosses was considered and rejected: it would near-double
 a 133KB file, and definitions authored at that volume would contain errors
@@ -244,13 +261,38 @@ verification is browser-based and manual.
 - Share card verified visually at full size and inspected for font fallback.
 - Existing text share, results screen and round summary re-checked for regression.
 
+## Outcome
+
+All three features implemented and browser-verified. Final size 167KB, up from
+133KB (+34KB, within the 25-35KB estimate).
+
+Two bugs were found and fixed during verification, both by looking rather than
+assuming:
+
+1. **Locked stickers rendered inconsistently.** `drawSticker` dimmed the locked
+   state with `globalAlpha`, but individual `ART` functions set and reset
+   `globalAlpha` internally — `ART.speed` resets it to 1 — so those stickers
+   rendered at full brightness while the rest were dim. Fixed by painting art to
+   an offscreen canvas and compositing it, so art functions cannot leak state
+   into the slot chrome.
+2. **The share card silently dropped stickers past the fourth.** Now capped at
+   four with a `+ N more` line.
+
+An unrelated pre-existing 404 on `/_vercel/insights/script.js` appears in the
+console when serving locally. It is the Vercel analytics endpoint and is
+expected off-platform.
+
 ## Risks
 
-1. **`dictionaryapi.dev` availability.** It is a free unguaranteed service. The
-   graceful-skip path means an outage degrades to today's behaviour rather than
-   breaking anything.
-2. **File growth.** The file is already 133KB. Stickers plus the card renderer
-   add an estimated 25-35KB. Acceptable; the rejected definition bundle was not.
+1. **Datamuse availability.** It is a free service with no uptime guarantee.
+   The graceful-skip path means an outage degrades to the previous behaviour
+   (no definition line) rather than breaking anything, and a failed lookup is
+   never cached, so it retries later.
+2. **File growth.** Now 167KB. Acceptable; the rejected definition bundle
+   would have pushed it past 240KB.
 3. **Sticker criteria drift.** The criteria read private engine internals
    (`wordInfo`, `sessionStats`). Changing the scoring engine later would silently
    change what unlocks. Mitigated by building `ctx` in one place.
+4. **Definition quality is not reviewed.** Glosses come from Wiktionary via
+   Datamuse and are shown verbatim. Most are fine; some carry dialect or
+   archaic senses as the first definition.
