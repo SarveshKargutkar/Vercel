@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #11141d;
+          color: #e8ecf5;
+          font-family: 'Inter', sans-serif;
+        }
+        #root .s2-glow {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(80px);
+          width: 720px;
+          height: 720px;
+          left: 50%;
+          top: -260px;
+          transform: translateX(-50%);
+          background: radial-gradient(circle, rgba(245, 165, 36, 0.16) 0%, transparent 70%);
+        }
+        #root .s2-head {
+          position: absolute;
+          top: 100px;
+          left: 0;
+          right: 0;
+          text-align: center;
+        }
+        #root .s2-head h1 {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          font-size: 58px;
+          color: #e8ecf5;
+          letter-spacing: 1px;
+          margin: 0;
+        }
+        #root .s2-head h1 .flame {
+          color: #f5a524;
+        }
+        #root .s2-grid {
+          position: absolute;
+          top: 260px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 1240px;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 34px;
+        }
+        #root .s2-card {
+          background: #1c2230;
+          border: 1px solid #323c54;
+          border-radius: 18px;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+          padding: 40px 34px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: 14px;
+        }
+        #root .s2-card .icon {
+          font-size: 58px;
+          line-height: 1;
+        }
+        #root .s2-card h2 {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 29px;
+          font-weight: 700;
+          color: #e8ecf5;
+          margin: 0;
+        }
+        #root .s2-card p {
+          font-size: 19px;
+          color: #98a2b8;
+          margin: 0;
+          line-height: 1.35;
+        }
+        #root .s2-card .go {
+          margin-top: 4px;
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          color: #f5a524;
+          letter-spacing: 1px;
+          font-size: 18px;
+        }
+      </style>
+
+      <div data-hf-id="hf-hqtf" id="root" data-composition-id="scene2-hub" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-nmmf" class="s2-glow" data-layout-allow-overflow="true"></div>
+
+        <div data-hf-id="hf-0ble" class="s2-head" id="s2-head">
+          <h1 data-hf-id="hf-n12x">Phoenix <span data-hf-id="hf-ialx" class="flame">Hub</span></h1>
+        </div>
+
+        <div data-hf-id="hf-4pyc" class="s2-grid">
+          <div data-hf-id="hf-ppu0" class="s2-card" id="s2-card-1">
+            <div data-hf-id="hf-mre3" class="icon">🧾</div>
+            <h2 data-hf-id="hf-55kk">Trip Expense Calculator</h2>
+            <p data-hf-id="hf-6ml5">Split trip costs fairly, settle up with the fewest payments.</p>
+            <div data-hf-id="hf-487o" class="go">Open →</div>
+          </div>
+          <div data-hf-id="hf-ydpv" class="s2-card" id="s2-card-2">
+            <div data-hf-id="hf-o6i2" class="icon">🔤</div>
+            <h2 data-hf-id="hf-d18e">Glitchword</h2>
+            <p data-hf-id="hf-xy2x">Wordle with a twist — some tiles lie about their color.</p>
+            <div data-hf-id="hf-q9v6" class="go">Play →</div>
+          </div>
+          <div data-hf-id="hf-uflu" class="s2-card" id="s2-card-3">
+            <div data-hf-id="hf-hivy" class="icon">⚔️</div>
+            <h2 data-hf-id="hf-f8gg">The Unfolding Battle</h2>
+            <p data-hf-id="hf-llrx">Place cards, reveal, out-power your foe.</p>
+            <div data-hf-id="hf-86d2" class="go">Play →</div>
+          </div>
+          <div data-hf-id="hf-bnw5" class="s2-card" id="s2-card-4">
+            <div data-hf-id="hf-v8v7" class="icon">🎬</div>
+            <h2 data-hf-id="hf-k90z">Animation Studio</h2>
+            <p data-hf-id="hf-t0op">Draw, keyframe, export as GIF, SVG, still, or video.</p>
+            <div data-hf-id="hf-bc18" class="go">Open →</div>
+          </div>
+        </div>
+
+        <audio data-hf-id="hf-fbh4" id="s2-sfx-1" src="assets/sfx/interface/drop_001.ogg" data-start="0.35" data-duration="0.6" data-track-index="101" data-volume="0.55"></audio>
+        <audio data-hf-id="hf-fzc6" id="s2-sfx-2" src="assets/sfx/interface/drop_001.ogg" data-start="0.48" data-duration="0.6" data-track-index="102" data-volume="0.55"></audio>
+        <audio data-hf-id="hf-kmxn" id="s2-sfx-3" src="assets/sfx/interface/drop_001.ogg" data-start="0.61" data-duration="0.6" data-track-index="103" data-volume="0.55"></audio>
+        <audio data-hf-id="hf-6n6j" id="s2-sfx-4" src="assets/sfx/impact/impactSoft_medium_002.ogg" data-start="0.74" data-duration="0.8" data-track-index="104" data-volume="0.7"></audio>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo(
+          '#s2-head',
+          { opacity: 0, y: -16 },
+          { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' },
+          0.1,
+        );
+        const cards = ['#s2-card-1', '#s2-card-2', '#s2-card-3', '#s2-card-4'];
+        const starts = [0.35, 0.48, 0.61, 0.74];
+        cards.forEach((sel, i) => {
+          tl.fromTo(
+            sel,
+            { opacity: 0, scale: 0.86, boxShadow: '0 12px 32px rgba(0,0,0,0.4)' },
+            {
+              opacity: 1,
+              scale: 1,
+              boxShadow: '0 0 0 2px #f5a524, 0 12px 32px rgba(0,0,0,0.4)',
+              duration: 0.32,
+              ease: 'back.out(1.7)',
+            },
+            starts[i],
+          );
+          tl.to(
+            sel,
+            { boxShadow: '0 12px 32px rgba(0,0,0,0.4)', duration: 0.35, ease: 'power2.out' },
+            starts[i] + 0.4,
+          );
+        });
+        window.__timelines['scene2-hub'] = tl;
+      </script>
+    </template>
+  </body>
+</html>

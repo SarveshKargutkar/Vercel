@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Phoenix Hub — Brag</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Sora";
+        font-weight: 700;
+        font-style: normal;
+        src: url("assets/fonts/Sora-700.ttf") format("truetype");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 400;
+        font-style: normal;
+        src: url("assets/fonts/Inter-400.ttf") format("truetype");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 600;
+        font-style: normal;
+        src: url("assets/fonts/Inter-600.ttf") format("truetype");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 700;
+        font-style: normal;
+        src: url("assets/fonts/Inter-700.ttf") format("truetype");
+      }
+
+      :root {
+        --bg: #11141d;
+        --paper: #1c2230;
+        --line: #323c54;
+        --ink: #e8ecf5;
+        --ink-soft: #98a2b8;
+        --gold: #f5a524;
+        --red: #f06a4d;
+        --green: #43c98c;
+        --yellow: #d4a72c;
+        --gray: #3a414c;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        font-family: "Inter", system-ui, sans-serif;
+        color: var(--ink);
+      }
+
+      /* persistent background field, not a timed clip */
+      #bg-field {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(circle at 15% 10%, rgba(245, 165, 36, 0.08) 0, transparent 42%),
+          radial-gradient(circle at 85% 85%, rgba(90, 162, 232, 0.06) 0, transparent 45%),
+          var(--bg);
+      }
+
+      .clip {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+      }
+      .scene-inner {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ---------- shared caption bar ---------- */
+      .caption {
+        position: absolute;
+        left: 50%;
+        bottom: 92px;
+        transform: translateX(-50%);
+        background: rgba(17, 20, 29, 0.82);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 34px;
+        font-family: "Sora", sans-serif;
+        font-weight: 700;
+        font-size: 34px;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+      .caption.small {
+        top: 70px;
+        bottom: auto;
+        font-size: 28px;
+        padding: 12px 28px;
+      }
+
+      /* ================= SCENE 1 : HOOK ================= */
+      #s1-tagline {
+        font-family: "Inter", sans-serif;
+        font-weight: 500;
+        font-size: 34px;
+        letter-spacing: 0.5px;
+        color: var(--ink-soft);
+        position: absolute;
+        bottom: 260px;
+      }
+      #s1-flare {
+        position: absolute;
+        width: 900px;
+        height: 900px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(245, 165, 36, 0.55) 0%, rgba(245, 165, 36, 0) 68%);
+      }
+      #s1-flame {
+        position: relative;
+        width: 260px;
+        height: 260px;
+      }
+
+      /* ================= SCENE 2 : REVEAL ================= */
+      #s2-title {
+        font-family: "Sora", sans-serif;
+        font-weight: 700;
+        font-size: 148px;
+        letter-spacing: 1px;
+      }
+      #s2-title .hub {
+        color: var(--gold);
+      }
+      #s2-sub {
+        margin-top: 22px;
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        font-size: 40px;
+        color: var(--ink-soft);
+        letter-spacing: 0.5px;
+      }
+
+      /* ================= SCENE 3 : BATTLE ================= */
+      #s3-board {
+        display: flex;
+        align-items: center;
+        gap: 90px;
+      }
+      .bcard {
+        width: 260px;
+        height: 350px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 18px 18px 14px;
+      }
+      .bcard .cname {
+        font-family: "Sora", sans-serif;
+        font-weight: 700;
+        font-size: 26px;
+        border-bottom: 2px solid var(--line);
+        padding-bottom: 10px;
+      }
+      .bcard .ctext {
+        margin-top: 12px;
+        font-size: 18px;
+        color: var(--ink-soft);
+        line-height: 1.4;
+      }
+      .bcard .pow {
+        position: absolute;
+        bottom: -22px;
+        left: -18px;
+        width: 76px;
+        height: 76px;
+        border-radius: 10px;
+        background: var(--red);
+        border: 3px solid var(--line);
+        color: #fff;
+        font-family: "Sora", sans-serif;
+        font-weight: 700;
+        font-size: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #s3-slot {
+        width: 280px;
+        height: 372px;
+        border: 3px dashed rgba(152, 162, 184, 0.35);
+        border-radius: 18px;
+      }
+      #s3-slot.armed {
+        border: 3px solid var(--gold);
+      }
+      .vs-line {
+        font-family: "Sora", sans-serif;
+        color: var(--red);
+        font-size: 22px;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+      }
+
+      /* ================= SCENE 4 : GLITCHWORD ================= */
+      #s4-row {
+        display: flex;
+        gap: 18px;
+      }
+      .gtile {
+        width: 140px;
+        height: 140px;
+        border-radius: 14px;
+        border: 3px solid var(--line);
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Sora", sans-serif;
+        font-weight: 700;
+        font-size: 64px;
+        color: var(--ink);
+        position: relative;
+      }
+      .gtile.glitch {
+        outline: 3px dashed #ff3d7f;
+        outline-offset: 4px;
+      }
+      .gtile .badge {
+        position: absolute;
+        top: -18px;
+        right: -18px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #ff3d7f;
+        color: #fff;
+        font-family: "Sora", sans-serif;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+      }
+
+      /* ================= SCENE 5 : TWO MORE REALMS ================= */
+      #s5-calc {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 26px 40px;
+        font-size: 38px;
+      }
+      #s5-calc b {
+        font-family: "Sora", sans-serif;
+      }
+      #s5-calc .arrow {
+        color: var(--gold);
+        font-weight: 700;
+      }
+      #s5-calc .rupee {
+        font-family: "Sora", sans-serif;
+        color: var(--red);
+        font-weight: 700;
+        font-size: 44px;
+      }
+      #s5-studio {
+        width: 1180px;
+        background: #151a26;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 26px;
+      }
+      #s5-canvas {
+        height: 200px;
+        border-radius: 10px;
+        background: #0f1420;
+        border: 1px solid var(--line);
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #s5-canvas .shape {
+        width: 90px;
+        height: 90px;
+        border-radius: 18px;
+        background: var(--gold);
+      }
+      #s5-track {
+        position: relative;
+        height: 56px;
+        background: #0f1420;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      .keydot {
+        position: absolute;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        transform: translateY(-50%) rotate(45deg);
+        background: var(--gold);
+        border-radius: 3px;
+      }
+      #s5-playhead {
+        position: absolute;
+        top: -6px;
+        left: 0;
+        width: 2px;
+        height: 68px;
+        background: var(--gold);
+      }
+
+      /* ================= SCENE 6 : OUTRO ================= */
+      #s6-gridwrap {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+        width: 1080px;
+      }
+      .hcard {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 34px 26px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-align: center;
+      }
+      .hcard .icon {
+        font-size: 46px;
+      }
+      .hcard h3 {
+        font-family: "Sora", sans-serif;
+        font-size: 26px;
+        font-weight: 700;
+      }
+      #s6-sweep {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 340px;
+        background: linear-gradient(100deg, transparent, rgba(245, 165, 36, 0.35), transparent);
+        pointer-events: none;
+      }
+      #s6-titlewrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+      }
+      #s6-title {
+        font-family: "Sora", sans-serif;
+        font-weight: 700;
+        font-size: 118px;
+      }
+      #s6-title .hub {
+        color: var(--gold);
+      }
+      #s6-sub {
+        margin-top: 18px;
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        font-size: 36px;
+        color: var(--ink-soft);
+      }
+      #s6-mark {
+        position: absolute;
+        top: 56px;
+        width: 84px;
+        height: 84px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="bg-field"></div>
+
+      <!-- ============ SCENE 1 — HOOK ============ -->
+      <section id="scene-1" class="clip" data-start="0" data-duration="3" data-track-index="1">
+        <div class="scene-inner" id="s1-inner">
+          <div id="s1-flare"></div>
+          <svg id="s1-flame" viewBox="0 0 64 64">
+            <path
+              d="M32 8c2 8-6 11-6 19 0 3 1.5 5.5 3.5 7-.5-4 1.5-6.5 4-8.5-1 6 7 8 7 15 0 2.2-.8 4.2-2.1 5.7C43.5 44 48 38.6 48 31.5 48 19 34 17 32 8z"
+              fill="#f5a524"
+            />
+            <path
+              d="M26.5 39c-.3 5 2 8.5 5.5 8.5s6-3 5.5-7c-.3-3-2.5-4.6-4.5-6.5.5 2.5-.8 4-2.5 5-1.5-1.5-2.3-3-2.3-5-1 1.4-1.6 3.2-1.7 5z"
+              fill="#f06a4d"
+            />
+            <circle cx="32" cy="52" r="3" fill="#f5a524" />
+          </svg>
+          <div id="s1-tagline">small apps, built for fun.</div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 2 — REVEAL ============ -->
+      <section id="scene-2" class="clip" data-start="3" data-duration="3.5" data-track-index="2">
+        <div class="scene-inner" id="s2-inner">
+          <div id="s2-title">PHOENIX <span class="hub">HUB</span></div>
+          <div id="s2-sub">Four worlds. One flame.</div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 3 — BATTLE ============ -->
+      <section id="scene-3" class="clip" data-start="6.5" data-duration="3.5" data-track-index="1">
+        <div class="scene-inner" id="s3-inner">
+          <div id="s3-board">
+            <div class="bcard" id="s3-opp">
+              <div class="cname">Stone Warden</div>
+              <div class="ctext">Braces the line. Reduces incoming power by 2.</div>
+              <div class="pow" id="s3-opp-pow">5</div>
+            </div>
+            <div class="vs-line">the line of battle</div>
+            <div id="s3-slot" class="armed">
+              <div class="bcard" id="s3-mine" style="position: relative; top: 11px; left: 10px;">
+                <div class="cname">Ember Wolf</div>
+                <div class="ctext">Strikes twice. Gains power for every card played this round.</div>
+                <div class="pow" id="s3-mine-pow">8</div>
+              </div>
+            </div>
+          </div>
+          <div class="caption">A duel of wits, waged in cards.</div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 4 — GLITCHWORD ============ -->
+      <section id="scene-4" class="clip" data-start="10" data-duration="3.5" data-track-index="2">
+        <div class="scene-inner" id="s4-inner">
+          <div id="s4-row">
+            <div class="gtile" id="g1">F</div>
+            <div class="gtile" id="g2">L</div>
+            <div class="gtile" id="g3">A</div>
+            <div class="gtile" id="g4">M</div>
+            <div class="gtile" id="g5">E<span class="badge" id="g5-badge">&#9096;</span></div>
+          </div>
+          <div class="caption">Truth, hidden in the glitch.</div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 5 — TWO MORE REALMS ============ -->
+      <section id="scene-5" class="clip" data-start="13.5" data-duration="3.5" data-track-index="1">
+        <div class="scene-inner" id="s5-inner">
+          <div class="caption small">...and two more realms.</div>
+          <div id="s5-calc">
+            <b>Sarvesh</b>
+            <span class="arrow">pays &rarr;</span>
+            <b>Phoenix</b>
+            <span class="rupee">&#8377;1,240</span>
+          </div>
+          <div id="s5-studio" style="opacity: 0;">
+            <div id="s5-canvas"><div class="shape"></div></div>
+            <div id="s5-track">
+              <div class="keydot" style="left: 8%"></div>
+              <div class="keydot" style="left: 34%"></div>
+              <div class="keydot" style="left: 61%"></div>
+              <div class="keydot" style="left: 88%"></div>
+              <div id="s5-playhead"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 6 — OUTRO ============ -->
+      <section id="scene-6" class="clip" data-start="17" data-duration="3" data-track-index="2">
+        <div class="scene-inner" id="s6-inner">
+          <div id="s6-gridwrap">
+            <div class="hcard"><div class="icon" data-layout-allow-overlap>&#129534;</div><h3 data-layout-allow-overlap>Expense Calculator</h3></div>
+            <div class="hcard"><div class="icon" data-layout-allow-overlap>&#128292;</div><h3 data-layout-allow-overlap>Glitchword</h3></div>
+            <div class="hcard"><div class="icon" data-layout-allow-overlap>&#9876;&#65039;</div><h3 data-layout-allow-overlap>The Unfolding Battle</h3></div>
+            <div class="hcard"><div class="icon" data-layout-allow-overlap>&#127916;</div><h3 data-layout-allow-overlap>Animation Studio</h3></div>
+            <div id="s6-sweep"></div>
+          </div>
+          <div id="s6-titlewrap" data-layout-allow-occlusion style="opacity: 0;">
+            <svg id="s6-mark" viewBox="0 0 64 64">
+              <rect width="64" height="64" rx="14" fill="#11141d" />
+              <path
+                d="M32 8c2 8-6 11-6 19 0 3 1.5 5.5 3.5 7-.5-4 1.5-6.5 4-8.5-1 6 7 8 7 15 0 2.2-.8 4.2-2.1 5.7C43.5 44 48 38.6 48 31.5 48 19 34 17 32 8z"
+                fill="#f5a524"
+              />
+              <path
+                d="M26.5 39c-.3 5 2 8.5 5.5 8.5s6-3 5.5-7c-.3-3-2.5-4.6-4.5-6.5.5 2.5-.8 4-2.5 5-1.5-1.5-2.3-3-2.3-5-1 1.4-1.6 3.2-1.7 5z"
+                fill="#f06a4d"
+              />
+              <circle cx="32" cy="52" r="3" fill="#f5a524" />
+            </svg>
+            <div id="s6-title">PHOENIX <span class="hub">HUB</span></div>
+            <div id="s6-sub">Four worlds. One flame.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ AUDIO ============ -->
+      <audio
+        id="bg-music"
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+        data-start="0"
+        data-duration="20"
+        data-track-index="10"
+        data-volume="0.3"
+        data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":0},{"t":1,"v":0.15},{"t":3,"v":0.15},{"t":3.8,"v":0.3},{"t":19.3,"v":0.3},{"t":20,"v":0}]}]}'
+      ></audio>
+
+      <audio id="sfx-ignite" src="assets/sfx/impact/impactBell_heavy_000.ogg" data-start="1.5" data-duration="1.2" data-track-index="11" data-volume="0.75"></audio>
+      <audio id="sfx-title" src="assets/sfx/impact/impactSoft_medium_001.ogg" data-start="3.2" data-duration="1" data-track-index="12" data-volume="0.6"></audio>
+      <audio id="sfx-cardslide" src="assets/sfx/casino/card-slide-3.ogg" data-start="6.7" data-duration="0.8" data-track-index="13" data-volume="0.7"></audio>
+      <!-- beat-locked: 8.74s -->
+      <audio id="sfx-powerflash" src="assets/sfx/impact/impactSoft_medium_002.ogg" data-start="8.74" data-duration="0.8" data-track-index="14" data-volume="0.75"></audio>
+      <audio id="sfx-tile1" src="assets/sfx/interface/switch_004.ogg" data-start="10.3" data-duration="0.5" data-track-index="15" data-volume="0.55"></audio>
+      <audio id="sfx-tile2" src="assets/sfx/interface/switch_002.ogg" data-start="11" data-duration="0.5" data-track-index="16" data-volume="0.55"></audio>
+      <audio id="sfx-tile3" src="assets/sfx/interface/switch_004.ogg" data-start="11.7" data-duration="0.5" data-track-index="17" data-volume="0.55"></audio>
+      <audio id="sfx-tile4" src="assets/sfx/interface/switch_002.ogg" data-start="12.4" data-duration="0.5" data-track-index="18" data-volume="0.55"></audio>
+      <!-- beat-locked: 13.11s -->
+      <audio id="sfx-glitch" src="assets/sfx/interface/glitch_002.ogg" data-start="13.11" data-duration="0.6" data-track-index="19" data-volume="0.7"></audio>
+      <audio id="sfx-calcdrop" src="assets/sfx/interface/drop_002.ogg" data-start="13.7" data-duration="0.6" data-track-index="20" data-volume="0.6"></audio>
+      <audio id="sfx-scrub" src="assets/sfx/interface/switch_002.ogg" data-start="15.3" data-duration="0.6" data-track-index="21" data-volume="0.55"></audio>
+      <!-- beat-locked: 17.47s -->
+      <audio id="sfx-outro" src="assets/sfx/impact/impactBell_heavy_003.ogg" data-start="17.47" data-duration="1.2" data-track-index="22" data-volume="0.8"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------- helper: fast dramatic-wipe entrance/exit on a scene ---------- */
+      function sceneWipe(sel, start, duration, opts) {
+        opts = opts || {};
+        const inDur = opts.inDur || 0.35;
+        const outDur = opts.outDur || 0.3;
+        gsap.set(sel, { opacity: 0, scale: 0.96 });
+        tl.to(sel, { opacity: 1, scale: 1, duration: inDur, ease: "power2.out" }, start);
+        if (opts.exit !== false) {
+          tl.to(sel, { opacity: 0, scale: 1.04, duration: outDur, ease: "power1.in" }, start + duration - outDur);
+        }
+      }
+
+      /* ================= SCENE 1 : HOOK (0 - 3.0) ================= */
+      sceneWipe("#s1-inner", 0, 3, { exit: false });
+      gsap.set("#s1-tagline", { opacity: 0, y: 12 });
+      gsap.set("#s1-flame", { opacity: 0, scale: 0.7, transformOrigin: "50% 50%" });
+      gsap.set("#s1-flare", { opacity: 0, scale: 0.6, transformOrigin: "50% 50%" });
+      tl.to("#s1-tagline", { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 0.1);
+      tl.to("#s1-flare", { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 1.4);
+      tl.to("#s1-flare", { opacity: 0, duration: 0.7, ease: "power1.in" }, 2.1);
+      tl.to("#s1-flame", { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(1.6)" }, 1.5);
+
+      /* ================= SCENE 2 : REVEAL (3.0 - 6.5) ================= */
+      sceneWipe("#s2-inner", 3, 3.5);
+      gsap.set("#s2-title", { opacity: 0, scale: 0.94 });
+      gsap.set("#s2-sub", { opacity: 0, y: 16 });
+      tl.to("#s2-title", { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, 3.2);
+      tl.to("#s2-sub", { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 4.0);
+
+      /* ================= SCENE 3 : BATTLE (6.5 - 10.0) ================= */
+      sceneWipe("#s3-inner", 6.5, 3.5);
+      gsap.set("#s3-mine", { opacity: 0, x: 340 });
+      gsap.set(".caption", { opacity: 0 });
+      tl.to("#s3-mine", { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 6.7);
+      tl.to(
+        "#s3-mine",
+        { keyframes: [{ scale: 1, duration: 0 }, { scale: 1.07, duration: 0.12 }, { scale: 1, duration: 0.12 }] },
+        7.2,
+      );
+      tl.to("#scene-3 .caption", { opacity: 1, duration: 0.3 }, 7.3);
+      // beat-locked: 8.74s
+      tl.to(
+        "#s3-mine-pow",
+        {
+          keyframes: [
+            { scale: 1, boxShadow: "0 0 0 rgba(245,165,36,0)", duration: 0 },
+            { scale: 1.28, boxShadow: "0 0 26px 6px rgba(245,165,36,0.75)", duration: 0.16 },
+            { scale: 1.1, boxShadow: "0 0 12px 3px rgba(245,165,36,0.5)", duration: 0.16 },
+          ],
+        },
+        8.74,
+      );
+      tl.to("#s3-opp-pow", { opacity: 0.55, duration: 0.2 }, 8.74);
+
+      /* ================= SCENE 4 : GLITCHWORD (10.0 - 13.5) ================= */
+      sceneWipe("#s4-inner", 10, 3.5);
+      gsap.set("#scene-4 .caption", { opacity: 0 });
+      gsap.set("#g5-badge", { opacity: 0, scale: 0.4 });
+      function flipTile(sel, color, at) {
+        tl.to(sel, { scaleY: 0.05, duration: 0.13, ease: "power1.in" }, at);
+        tl.set(sel, { backgroundColor: color, color: "#ffffff", borderColor: color }, at + 0.13);
+        tl.to(sel, { scaleY: 1, duration: 0.13, ease: "power1.out" }, at + 0.13);
+      }
+      flipTile("#g1", "#43c98c", 10.3);
+      flipTile("#g2", "#d4a72c", 11.0);
+      flipTile("#g3", "#3a414c", 11.7);
+      flipTile("#g4", "#43c98c", 12.4);
+      tl.to("#scene-4 .caption", { opacity: 1, duration: 0.3 }, 10.8);
+      // beat-locked: 13.11s
+      tl.to("#g5", { scaleY: 0.05, duration: 0.13, ease: "power1.in" }, 13.11);
+      tl.set("#g5", { borderColor: "#ff3d7f" }, 13.24);
+      tl.to("#g5", { scaleY: 1, duration: 0.13, ease: "power1.out" }, 13.24);
+      tl.to("#g5-badge", { opacity: 1, scale: 1, duration: 0.2, ease: "back.out(2)" }, 13.3);
+
+      /* ================= SCENE 5 : TWO MORE REALMS (13.5 - 17.0) ================= */
+      sceneWipe("#s5-inner", 13.5, 3.5);
+      gsap.set("#s5-calc", { opacity: 0, y: 18 });
+      tl.to("#s5-calc", { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 13.7);
+      tl.to("#s5-calc", { opacity: 0, duration: 0.2, ease: "power1.in" }, 15.1);
+      tl.to("#s5-studio", { opacity: 1, duration: 0.25, ease: "power2.out" }, 15.3);
+      gsap.set("#s5-playhead", { x: 90 });
+      tl.to("#s5-playhead", { x: 993, duration: 1.4, ease: "none" }, 15.4);
+
+      /* ================= SCENE 6 : OUTRO (17.0 - 20.0) ================= */
+      sceneWipe("#s6-inner", 17, 3, { exit: false });
+      gsap.set(".hcard", { opacity: 0, y: 14 });
+      gsap.set("#s6-sweep", { x: -400 });
+      gsap.set("#s6-titlewrap", { opacity: 0 });
+      gsap.set("#s6-mark", { opacity: 0, scale: 0.7, transformOrigin: "50% 50%" });
+      tl.to(".hcard", { opacity: 1, y: 0, duration: 0.35, ease: "power2.out", stagger: 0.06 }, 17.05);
+      tl.to("#s6-sweep", { x: 1200, duration: 0.9, ease: "power1.inOut" }, 17.3);
+      // beat-locked: 17.47s
+      tl.to("#s6-titlewrap", { opacity: 1, duration: 0.3, ease: "power2.out" }, 17.47);
+      tl.to("#s6-mark", { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)" }, 17.47);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #11141d;
+          color: #e8ecf5;
+          font-family: 'Inter', sans-serif;
+        }
+        #root .s3-glow {
+          position: absolute;
+          width: 900px;
+          height: 900px;
+          left: 50%;
+          top: 50%;
+          margin-left: -450px;
+          margin-top: -450px;
+          border-radius: 50%;
+          filter: blur(90px);
+          background: radial-gradient(circle, rgba(240, 106, 77, 0.14) 0%, transparent 70%);
+        }
+        #root .s3-title {
+          position: absolute;
+          top: 62px;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          font-size: 40px;
+          color: #e8ecf5;
+          letter-spacing: 1px;
+        }
+        #root .s3-board {
+          position: absolute;
+          top: 190px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+        }
+        #root .s3-row {
+          display: flex;
+          gap: 40px;
+        }
+        #root .s3-vs {
+          font-family: 'Montserrat', sans-serif;
+          color: #f06a4d;
+          font-size: 22px;
+          letter-spacing: 4px;
+          text-transform: uppercase;
+        }
+        #root .s3-slot {
+          position: relative;
+          width: 210px;
+          height: 292px;
+        }
+        #root .s3-outline {
+          position: absolute;
+          inset: 0;
+          border: 3px dashed rgba(152, 162, 184, 0.35);
+          border-radius: 18px;
+        }
+        #root .s3-card {
+          position: absolute;
+          inset: 0;
+          border-radius: 16px;
+          border: 1px solid #323c54;
+          background: #1c2230;
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+          padding: 16px 14px 12px;
+          display: flex;
+          flex-direction: column;
+        }
+        #root .s3-card .cname {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          font-size: 20px;
+          color: #e8ecf5;
+          border-bottom: 2px solid #323c54;
+          padding-bottom: 6px;
+        }
+        #root .s3-card .ctext {
+          font-size: 15px;
+          color: #98a2b8;
+          margin-top: 10px;
+          flex: 1;
+        }
+        #root .s3-card .cost {
+          position: absolute;
+          top: -16px;
+          right: -14px;
+          width: 46px;
+          height: 46px;
+          border-radius: 8px;
+          background: #2f6fb3;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          font-size: 22px;
+          border: 3px solid #323c54;
+        }
+        #root .s3-card .pow {
+          position: absolute;
+          bottom: -18px;
+          left: -14px;
+          width: 54px;
+          height: 54px;
+          border-radius: 8px;
+          background: #f06a4d;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          font-size: 26px;
+          border: 3px solid #323c54;
+        }
+        #root .s3-back {
+          position: absolute;
+          inset: 0;
+          border-radius: 16px;
+          border: 1px solid #323c54;
+          background: repeating-linear-gradient(45deg, #222a3d 0 10px, #1a2133 10px 20px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        #root .s3-back::after {
+          content: '?';
+          font-family: 'Montserrat', sans-serif;
+          font-size: 64px;
+          font-weight: 700;
+          color: #98a2b8;
+        }
+        #root .s3-caption {
+          position: absolute;
+          bottom: 66px;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-size: 30px;
+          color: #98a2b8;
+        }
+        #root .s3-caption b {
+          color: #f5a524;
+        }
+      </style>
+
+      <div data-hf-id="hf-qif3" id="root" data-composition-id="scene3-battle" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-mt74" class="s3-glow" data-layout-allow-overflow="true"></div>
+        <div data-hf-id="hf-y7hs" class="s3-title">The Unfolding Battle</div>
+
+        <div data-hf-id="hf-brtx" class="s3-board">
+          <div data-hf-id="hf-i6xh" class="s3-row">
+            <div data-hf-id="hf-me8o" class="s3-slot" id="s3-opp-slot">
+              <div data-hf-id="hf-cda8" class="s3-card" id="s3-opp-card">
+                <div data-hf-id="hf-gt82" class="cname">Ember Wyrm</div>
+                <div data-hf-id="hf-23g3" class="ctext">Deals bonus damage if played first.</div>
+                <div data-hf-id="hf-2nfw" class="cost">3</div>
+                <div data-hf-id="hf-cgvs" class="pow" id="s3-opp-pow">7</div>
+              </div>
+            </div>
+          </div>
+
+          <div data-hf-id="hf-tppo" class="s3-vs">~ the line of battle ~</div>
+
+          <div data-hf-id="hf-qxft" class="s3-row">
+            <div data-hf-id="hf-gekr" class="s3-slot" id="s3-me-slot">
+              <div data-hf-id="hf-hcib" class="s3-outline" id="s3-me-outline"></div>
+              <div data-hf-id="hf-4wmz" class="s3-back" id="s3-me-back"></div>
+              <div data-hf-id="hf-qcru" class="s3-card" id="s3-me-card" style="opacity: 0">
+                <div data-hf-id="hf-b5pt" class="cname">Glass Serpent</div>
+                <div data-hf-id="hf-hjb2" class="ctext">Shatters into a power surge on reveal.</div>
+                <div data-hf-id="hf-294v" class="cost">2</div>
+                <div data-hf-id="hf-kh07" class="pow" id="s3-me-pow">9</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div data-hf-id="hf-y8p1" class="s3-caption" id="s3-caption">place cards. reveal. <b data-hf-id="hf-rrca">out-power your foe.</b></div>
+
+        <audio data-hf-id="hf-yb6z" id="s3-sfx-slide" src="assets/sfx/casino/card-slide-3.ogg" data-start="0.5" data-duration="0.7" data-track-index="121" data-volume="0.7"></audio>
+        <audio data-hf-id="hf-mtnd" id="s3-sfx-reveal" src="assets/sfx/impact/impactSoft_medium_003.ogg" data-start="0.95" data-duration="0.7" data-track-index="122" data-volume="0.75"></audio>
+        <audio data-hf-id="hf-i6mf" id="s3-sfx-compare" src="assets/sfx/interface/click_002.ogg" data-start="1.35" data-duration="0.5" data-track-index="123" data-volume="0.6"></audio>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+
+        tl.fromTo(
+          '#s3-opp-card',
+          { opacity: 0, scale: 0.9 },
+          { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' },
+          0.1,
+        );
+        tl.fromTo('#s3-vs', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out' }, 0.2);
+
+        tl.fromTo(
+          '#s3-me-back',
+          { y: 150, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.45, ease: 'power3.out' },
+          0.5,
+        );
+        tl.to('#s3-me-outline', { opacity: 0, duration: 0.3, ease: 'power2.out' }, 0.55);
+
+        tl.fromTo(
+          '#s3-me-back',
+          { opacity: 1 },
+          { opacity: 0, duration: 0.28, ease: 'power2.in', immediateRender: false },
+          0.95,
+        );
+        tl.fromTo(
+          '#s3-me-card',
+          { opacity: 0, scale: 0.7 },
+          { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(1.7)' },
+          0.95,
+        );
+
+        tl.to('#s3-opp-pow', { scale: 1.15, duration: 0.15, ease: 'power2.out', yoyo: true, repeat: 1 }, 1.35);
+        tl.to('#s3-me-pow', { scale: 1.15, duration: 0.15, ease: 'power2.out', yoyo: true, repeat: 1 }, 1.35);
+
+        tl.to(
+          '#s3-me-pow',
+          { backgroundColor: '#43c98c', duration: 0.4, ease: 'power2.out' },
+          1.65,
+        );
+        tl.fromTo(
+          '#s3-me-card',
+          { boxShadow: '0 10px 28px rgba(0,0,0,0.4)' },
+          {
+            boxShadow: '0 0 0 3px #43c98c, 0 10px 28px rgba(0,0,0,0.4)',
+            duration: 0.4,
+            ease: 'power2.out',
+            immediateRender: false,
+          },
+          1.65,
+        );
+
+        tl.fromTo(
+          '#s3-caption',
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+          2.0,
+        );
+
+        window.__timelines['scene3-battle'] = tl;
+      </script>
+    </template>
+  </body>
+</html>

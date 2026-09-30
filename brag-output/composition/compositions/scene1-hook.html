@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #11141d;
+          color: #e8ecf5;
+          font-family: 'Inter', sans-serif;
+        }
+        #root .s1-glow {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(70px);
+        }
+        #root .s1-glow-a {
+          width: 680px;
+          height: 680px;
+          left: -160px;
+          top: -200px;
+          background: radial-gradient(circle, rgba(245, 165, 36, 0.28) 0%, transparent 70%);
+        }
+        #root .s1-glow-b {
+          width: 600px;
+          height: 600px;
+          right: -180px;
+          bottom: -200px;
+          background: radial-gradient(circle, rgba(240, 106, 77, 0.22) 0%, transparent 70%);
+        }
+        #root .s1-ghost-wrap {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          pointer-events: none;
+        }
+        #root .s1-ghost {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 900;
+          font-size: 360px;
+          letter-spacing: -8px;
+          color: #e8ecf5;
+          opacity: 0.045;
+          white-space: nowrap;
+        }
+        #root .s1-center {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 30px;
+        }
+        #root .s1-badge {
+          width: 220px;
+          height: 220px;
+          border-radius: 46px;
+          background: #11141d;
+          border: 1px solid #323c54;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+        }
+        #root .s1-badge svg {
+          width: 138px;
+          height: 138px;
+        }
+        #root .s1-tagline {
+          font-size: 54px;
+          color: #98a2b8;
+          letter-spacing: 0.5px;
+          font-weight: 400;
+        }
+        #root .s1-rule {
+          width: 0;
+          height: 2px;
+          background: #f5a524;
+          margin-top: -8px;
+        }
+      </style>
+
+      <div data-hf-id="hf-yr6w" id="root" data-composition-id="scene1-hook" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-ue5g" class="s1-glow s1-glow-a" id="s1-glow-a" data-layout-allow-overflow="true"></div>
+        <div data-hf-id="hf-k8gm" class="s1-glow s1-glow-b" id="s1-glow-b" data-layout-allow-overflow="true"></div>
+        <div data-hf-id="hf-dscf" class="s1-ghost-wrap">
+          <div data-hf-id="hf-z0zt" class="s1-ghost" id="s1-ghost">PHOENIX</div>
+        </div>
+        <div data-hf-id="hf-fc2e" class="s1-center">
+          <div data-hf-id="hf-xkhu" class="s1-badge" id="s1-badge">
+            <svg data-hf-id="hf-l6o9" viewBox="0 0 64 64">
+              <path data-hf-id="hf-kod4" d="M32 8c2 8-6 11-6 19 0 3 1.5 5.5 3.5 7-.5-4 1.5-6.5 4-8.5-1 6 7 8 7 15 0 2.2-.8 4.2-2.1 5.7C43.5 44 48 38.6 48 31.5 48 19 34 17 32 8z" fill="#f5a524" />
+              <path data-hf-id="hf-jutp" d="M26.5 39c-.3 5 2 8.5 5.5 8.5s6-3 5.5-7c-.3-3-2.5-4.6-4.5-6.5.5 2.5-.8 4-2.5 5-1.5-1.5-2.3-3-2.3-5-1 1.4-1.6 3.2-1.7 5z" fill="#f06a4d" />
+              <circle data-hf-id="hf-gv6z" cx="32" cy="52" r="3" fill="#f5a524" />
+            </svg>
+          </div>
+          <div data-hf-id="hf-dp6v" class="s1-tagline" id="s1-tagline">small apps, built for fun</div>
+          <div data-hf-id="hf-q1ds" class="s1-rule" id="s1-rule"></div>
+        </div>
+
+        <audio data-hf-id="hf-9ydx" id="s1-sfx-ignite" src="assets/sfx/impact/impactSoft_medium_001.ogg" data-start="0.1" data-duration="1" data-track-index="10" data-volume="0.75"></audio>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo(
+          '#s1-badge',
+          { opacity: 0, scale: 0.55 },
+          { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.6)' },
+          0.15,
+        );
+        tl.fromTo(
+          '#s1-tagline',
+          { opacity: 0, y: 22 },
+          { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+          0.75,
+        );
+        tl.fromTo('#s1-rule', { width: 0 }, { width: 420, duration: 0.5, ease: 'power2.out' }, 0.85);
+        tl.to('#s1-ghost', { x: 26, duration: 2.5, ease: 'sine.inOut' }, 0);
+        tl.to('#s1-glow-a', { scale: 1.08, duration: 2.5, ease: 'sine.inOut' }, 0);
+        tl.to('#s1-glow-b', { scale: 1.1, duration: 2.5, ease: 'sine.inOut' }, 0);
+        window.__timelines['scene1-hook'] = tl;
+      </script>
+    </template>
+  </body>
+</html>

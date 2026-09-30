@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #root > div[data-composition-src] {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-44f2" id="root" data-composition-id="phoenix-hub-brag" data-width="1920" data-height="1080" data-duration="17.5">
+      <div data-hf-id="hf-sgo6" id="el-scene1" data-composition-id="scene1-hook" data-composition-src="compositions/scene1-hook.html" data-start="0" data-duration="2.5" data-track-index="1" data-width="1920" data-height="1080"></div>
+
+      <div data-hf-id="hf-jtpa" id="el-scene2" data-composition-id="scene2-hub" data-composition-src="compositions/scene2-hub.html" data-start="2.5" data-duration="2.5" data-track-index="1" data-width="1920" data-height="1080"></div>
+
+      <div data-hf-id="hf-xwzv" id="el-scene3" data-composition-id="scene3-battle" data-composition-src="compositions/scene3-battle.html" data-start="5.0" data-duration="3.0" data-track-index="1" data-width="1920" data-height="1080"></div>
+
+      <div data-hf-id="hf-epcw" id="el-scene5" data-composition-id="scene5-glitchword" data-composition-src="compositions/scene5-glitchword.html" data-start="8.0" data-duration="3.0" data-track-index="1" data-width="1920" data-height="1080"></div>
+
+      <div data-hf-id="hf-ulgm" id="el-scene6" data-composition-id="scene6-more" data-composition-src="compositions/scene6-more.html" data-start="11.0" data-duration="3.5" data-track-index="1" data-width="1920" data-height="1080"></div>
+
+      <div data-hf-id="hf-b3hw" id="el-scene7" data-composition-id="scene7-outro" data-composition-src="compositions/scene7-outro.html" data-start="14.5" data-duration="3.0" data-track-index="1" data-width="1920" data-height="1080"></div>
+
+      <audio data-hf-id="hf-ubzp" id="el-music" src="assets/music/happy-beats-business-moves-vol-1-by-ende-dot-app.mp3" data-start="0" data-duration="17.5" data-track-index="30" data-volume="0.35" data-automation="{&quot;version&quot;:1,&quot;lanes&quot;:[{&quot;target&quot;:&quot;volume&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:0.35},{&quot;t&quot;:17.0,&quot;v&quot;:0.35},{&quot;t&quot;:17.5,&quot;v&quot;:0}]}]}"></audio>
+    </div>
+    <script>
+      window.__timelines['phoenix-hub-brag'] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

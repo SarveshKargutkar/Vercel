@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #11141d;
+          color: #e8ecf5;
+          font-family: 'Inter', sans-serif;
+        }
+        #root .s7-glow {
+          position: absolute;
+          width: 760px;
+          height: 760px;
+          left: 50%;
+          top: -260px;
+          margin-left: -380px;
+          border-radius: 50%;
+          filter: blur(90px);
+          background: radial-gradient(circle, rgba(245, 165, 36, 0.16) 0%, transparent 70%);
+        }
+        #root .s7-fadegroup {
+          position: absolute;
+          inset: 0;
+        }
+        #root .s7-badge {
+          position: absolute;
+          top: 96px;
+          left: 50%;
+          margin-left: -50px;
+          width: 100px;
+          height: 100px;
+          border-radius: 24px;
+          background: #11141d;
+          border: 1px solid #323c54;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+        }
+        #root .s7-badge svg {
+          width: 62px;
+          height: 62px;
+        }
+        #root .s7-head {
+          position: absolute;
+          top: 220px;
+          left: 0;
+          right: 0;
+          text-align: center;
+        }
+        #root .s7-head h1 {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          font-size: 50px;
+          color: #e8ecf5;
+          letter-spacing: 1px;
+          margin: 0;
+        }
+        #root .s7-head h1 .flame {
+          color: #f5a524;
+        }
+        #root .s7-grid {
+          position: absolute;
+          top: 340px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 1100px;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 26px;
+          overflow: hidden;
+          border-radius: 24px;
+        }
+        #root .s7-card {
+          background: #1c2230;
+          border: 1px solid #323c54;
+          border-radius: 16px;
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+          padding: 30px 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: 10px;
+        }
+        #root .s7-card .icon {
+          font-size: 46px;
+          line-height: 1;
+        }
+        #root .s7-card h2 {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 23px;
+          font-weight: 700;
+          color: #e8ecf5;
+          margin: 0;
+        }
+        #root .s7-sweep {
+          position: absolute;
+          top: 330px;
+          left: -260px;
+          width: 220px;
+          height: 400px;
+          background: linear-gradient(
+            100deg,
+            transparent 0%,
+            rgba(245, 165, 36, 0.28) 45%,
+            rgba(245, 165, 36, 0.28) 55%,
+            transparent 100%
+          );
+          mix-blend-mode: screen;
+        }
+        #root .s7-line {
+          position: absolute;
+          bottom: 150px;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          font-size: 44px;
+          color: #e8ecf5;
+          opacity: 0;
+        }
+        #root .s7-underline {
+          position: absolute;
+          bottom: 122px;
+          left: 50%;
+          margin-left: -80px;
+          width: 0;
+          height: 3px;
+          background: #f5a524;
+        }
+        #root .s7-endmark {
+          position: absolute;
+          top: 96px;
+          left: 50%;
+          margin-left: -50px;
+          text-align: center;
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          font-size: 26px;
+          color: #98a2b8;
+          width: 100px;
+          padding-top: 118px;
+          opacity: 0;
+        }
+      </style>
+
+      <div data-hf-id="hf-zgsw" id="root" data-composition-id="scene7-outro" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-056c" class="s7-glow" data-layout-allow-overflow="true"></div>
+
+        <div data-hf-id="hf-k4r6" class="s7-fadegroup" id="s7-fadegroup">
+          <div data-hf-id="hf-uq0h" class="s7-head">
+            <h1 data-hf-id="hf-n12x">Phoenix <span data-hf-id="hf-ialx" class="flame">Hub</span></h1>
+          </div>
+
+          <div data-hf-id="hf-1ruj" class="s7-grid">
+            <div data-hf-id="hf-kkum" class="s7-card" id="s7-c1">
+              <div data-hf-id="hf-mre3" class="icon">🧾</div>
+              <h2 data-hf-id="hf-55kk">Trip Expense Calculator</h2>
+            </div>
+            <div data-hf-id="hf-ef4t" class="s7-card" id="s7-c2">
+              <div data-hf-id="hf-o6i2" class="icon">🔤</div>
+              <h2 data-hf-id="hf-d18e">Glitchword</h2>
+            </div>
+            <div data-hf-id="hf-dnh0" class="s7-card" id="s7-c3">
+              <div data-hf-id="hf-hivy" class="icon">⚔️</div>
+              <h2 data-hf-id="hf-f8gg">The Unfolding Battle</h2>
+            </div>
+            <div data-hf-id="hf-14yj" class="s7-card" id="s7-c4">
+              <div data-hf-id="hf-v8v7" class="icon">🎬</div>
+              <h2 data-hf-id="hf-k90z">Animation Studio</h2>
+            </div>
+            <div data-hf-id="hf-ho1e" class="s7-sweep" id="s7-sweep" data-layout-allow-overflow="true"></div>
+          </div>
+        </div>
+
+        <div data-hf-id="hf-55ni" class="s7-badge" id="s7-badge">
+          <svg data-hf-id="hf-l6o9" viewBox="0 0 64 64">
+            <path data-hf-id="hf-kod4" d="M32 8c2 8-6 11-6 19 0 3 1.5 5.5 3.5 7-.5-4 1.5-6.5 4-8.5-1 6 7 8 7 15 0 2.2-.8 4.2-2.1 5.7C43.5 44 48 38.6 48 31.5 48 19 34 17 32 8z" fill="#f5a524" />
+            <path data-hf-id="hf-jutp" d="M26.5 39c-.3 5 2 8.5 5.5 8.5s6-3 5.5-7c-.3-3-2.5-4.6-4.5-6.5.5 2.5-.8 4-2.5 5-1.5-1.5-2.3-3-2.3-5-1 1.4-1.6 3.2-1.7 5z" fill="#f06a4d" />
+            <circle data-hf-id="hf-gv6z" cx="32" cy="52" r="3" fill="#f5a524" />
+          </svg>
+        </div>
+        <div data-hf-id="hf-o03q" class="s7-endmark" id="s7-endmark">Phoenix Hub</div>
+
+        <div data-hf-id="hf-oam6" class="s7-line" id="s7-line">One hub. Four weird little worlds. No installs.</div>
+        <div data-hf-id="hf-0kye" class="s7-underline" id="s7-underline"></div>
+
+        <audio data-hf-id="hf-y01u" id="s7-sfx-land" src="assets/sfx/impact/impactBell_heavy_004.ogg" data-start="1.0" data-duration="1" data-track-index="171" data-volume="0.75"></audio>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+
+        tl.fromTo('#s7-fadegroup', { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out' }, 0.1);
+        tl.fromTo('#s7-badge', { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.6)' }, 0.1);
+
+        tl.fromTo('#s7-sweep', { x: 0 }, { x: 1620, duration: 1.2, ease: 'power1.inOut' }, 0.2);
+
+        tl.fromTo('#s7-line', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 1.0);
+        tl.fromTo('#s7-underline', { width: 0 }, { width: 160, duration: 0.5, ease: 'power2.out' }, 1.1);
+
+        // Final beat: everything but the flame mark fades away, the flame becomes the last frame.
+        tl.to('#s7-fadegroup', { opacity: 0, duration: 0.5, ease: 'power2.in' }, 2.2);
+        tl.to('#s7-line', { opacity: 0, duration: 0.5, ease: 'power2.in' }, 2.2);
+        tl.to('#s7-underline', { opacity: 0, duration: 0.5, ease: 'power2.in' }, 2.2);
+        tl.to('#s7-badge', { scale: 1.7, duration: 0.6, ease: 'power2.out' }, 2.2);
+        tl.fromTo('#s7-endmark', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'power2.out' }, 2.72);
+
+        window.__timelines['scene7-outro'] = tl;
+      </script>
+    </template>
+  </body>
+</html>

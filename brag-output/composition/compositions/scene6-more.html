@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #11141d;
+          color: #e8ecf5;
+          font-family: 'Inter', sans-serif;
+        }
+        #root .s6-glow {
+          position: absolute;
+          width: 860px;
+          height: 860px;
+          left: 50%;
+          top: 50%;
+          margin-left: -430px;
+          margin-top: -430px;
+          border-radius: 50%;
+          filter: blur(90px);
+          background: radial-gradient(circle, rgba(90, 162, 232, 0.14) 0%, transparent 70%);
+        }
+        #root .s6-tag {
+          position: absolute;
+          top: 56px;
+          right: 90px;
+          padding: 10px 22px;
+          border: 1px solid #f5a524;
+          border-radius: 30px;
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          font-size: 24px;
+          color: #f5a524;
+          opacity: 0;
+        }
+        #root .s6-phase {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        /* ---- Phase A: expense settle-up ---- */
+        #root .s6-card {
+          width: 900px;
+          background: #1c2230;
+          border: 1px solid #323c54;
+          border-radius: 20px;
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+          padding: 44px 52px;
+        }
+        #root .s6-card h2 {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 34px;
+          color: #e8ecf5;
+          margin: 0 0 26px;
+        }
+        #root .s6-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 0;
+          border-bottom: 1px solid rgba(152, 162, 184, 0.15);
+          font-size: 26px;
+          color: #e8ecf5;
+        }
+        #root .s6-row:last-child {
+          border-bottom: none;
+        }
+        #root .s6-row .amt {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          color: #f5a524;
+        }
+        /* ---- Phase B: animation studio ---- */
+        #root .s6-studio {
+          width: 1100px;
+          display: flex;
+          flex-direction: column;
+          gap: 26px;
+        }
+        #root .s6-canvas {
+          height: 380px;
+          background: #1c2230;
+          border: 1px solid #323c54;
+          border-radius: 20px;
+          position: relative;
+          overflow: hidden;
+        }
+        #root .s6-shape {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 90px;
+          height: 90px;
+          border-radius: 50%;
+          background: #f5a524;
+          margin-top: -45px;
+          margin-left: -45px;
+          box-shadow: 0 0 40px rgba(245, 165, 36, 0.4);
+        }
+        #root .s6-track {
+          height: 64px;
+          background: #1c2230;
+          border: 1px solid #323c54;
+          border-radius: 14px;
+          position: relative;
+        }
+        #root .s6-diamond-wrap {
+          position: absolute;
+          top: 50%;
+          width: 20px;
+          height: 20px;
+          margin-top: -10px;
+          margin-left: -10px;
+        }
+        #root .s6-diamond {
+          width: 100%;
+          height: 100%;
+          background: #5aa2e8;
+          transform: rotate(45deg);
+        }
+        #root .s6-playhead {
+          position: absolute;
+          top: -8px;
+          bottom: -8px;
+          width: 4px;
+          background: #f5a524;
+          left: 40px;
+        }
+      </style>
+
+      <div data-hf-id="hf-jdvl" id="root" data-composition-id="scene6-more" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-pqvf" class="s6-glow" data-layout-allow-overflow="true"></div>
+        <div data-hf-id="hf-4ibu" class="s6-tag" id="s6-tag">…and two more.</div>
+
+        <div data-hf-id="hf-l7l3" class="s6-phase" id="s6-phaseA">
+          <div data-hf-id="hf-hope" class="s6-card">
+            <h2 data-hf-id="hf-q8x1">Settle Up</h2>
+            <div data-hf-id="hf-hqg9" class="s6-row" id="s6-r1"><span data-hf-id="hf-k2ze">Sarvesh → Aditi</span><span data-hf-id="hf-i0op" class="amt">₹450</span></div>
+            <div data-hf-id="hf-loka" class="s6-row" id="s6-r2"><span data-hf-id="hf-al3o">Aditi → Rohan</span><span data-hf-id="hf-79up" class="amt">₹120</span></div>
+            <div data-hf-id="hf-pmob" class="s6-row" id="s6-r3"><span data-hf-id="hf-7dk7">Rohan → Sarvesh</span><span data-hf-id="hf-wpmm" class="amt">₹60</span></div>
+          </div>
+        </div>
+
+        <div data-hf-id="hf-uzcf" class="s6-phase" id="s6-phaseB" style="opacity: 0">
+          <div data-hf-id="hf-ar6a" class="s6-studio">
+            <div data-hf-id="hf-okx0" class="s6-canvas">
+              <div data-hf-id="hf-4fdm" class="s6-shape" id="s6-shape"></div>
+            </div>
+            <div data-hf-id="hf-1c6d" class="s6-track">
+              <div data-hf-id="hf-dwe0" class="s6-diamond-wrap" id="s6-d1" style="left: 120px"><div data-hf-id="hf-lhok" class="s6-diamond"></div></div>
+              <div data-hf-id="hf-5iby" class="s6-diamond-wrap" id="s6-d2" style="left: 420px"><div data-hf-id="hf-bvgc" class="s6-diamond"></div></div>
+              <div data-hf-id="hf-a3l6" class="s6-diamond-wrap" id="s6-d3" style="left: 700px"><div data-hf-id="hf-aoj9" class="s6-diamond"></div></div>
+              <div data-hf-id="hf-qeoh" class="s6-diamond-wrap" id="s6-d4" style="left: 1000px"><div data-hf-id="hf-b2ua" class="s6-diamond"></div></div>
+              <div data-hf-id="hf-lo1e" class="s6-playhead" id="s6-playhead"></div>
+            </div>
+          </div>
+        </div>
+
+        <audio data-hf-id="hf-c5ux" id="s6-sfx-drop" src="assets/sfx/interface/drop_002.ogg" data-start="0.15" data-duration="0.6" data-track-index="161" data-volume="0.6"></audio>
+        <audio data-hf-id="hf-gsia" id="s6-sfx-scrub-1" src="assets/sfx/interface/switch_002.ogg" data-start="1.8" data-duration="0.4" data-track-index="162" data-volume="0.55"></audio>
+        <audio data-hf-id="hf-ok56" id="s6-sfx-scrub-2" src="assets/sfx/interface/switch_002.ogg" data-start="2.65" data-duration="0.4" data-track-index="163" data-volume="0.55"></audio>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+
+        tl.fromTo('#s6-tag', { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }, 0.1);
+
+        tl.fromTo('#s6-phaseA .s6-card', { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, 0.15);
+        tl.fromTo('#s6-r1', { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.3, ease: 'power2.out' }, 0.35);
+        tl.fromTo('#s6-r2', { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.3, ease: 'power2.out' }, 0.5);
+        tl.fromTo('#s6-r3', { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.3, ease: 'power2.out' }, 0.65);
+
+        // Hard cut to Animation Studio
+        tl.set('#s6-phaseA', { opacity: 0 }, 1.6);
+        tl.set('#s6-phaseB', { opacity: 1 }, 1.6);
+        tl.fromTo('#s6-phaseB .s6-studio', { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.3, ease: 'power2.out' }, 1.6);
+
+        tl.fromTo('#s6-playhead', { x: 0 }, { x: 960, duration: 1.5, ease: 'none' }, 1.8);
+        tl.fromTo('#s6-shape', { x: -260 }, { x: 260, duration: 1.5, ease: 'none' }, 1.8);
+
+        ['#s6-d1', '#s6-d2', '#s6-d3', '#s6-d4'].forEach((sel, i) => {
+          const t = 1.85 + i * 0.4;
+          tl.to(sel, { scale: 1.5, duration: 0.12, ease: 'power2.out', yoyo: true, repeat: 1 }, t);
+        });
+
+        window.__timelines['scene6-more'] = tl;
+      </script>
+    </template>
+  </body>
+</html>
