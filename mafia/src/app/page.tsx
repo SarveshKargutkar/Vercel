@@ -12,6 +12,9 @@ export default function Home() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /* Set after mount: window is absent during prerender, and reading it in
+     render would desync the server and client HTML. */
+  const [isLocal, setIsLocal] = useState<boolean | null>(null);
 
   // Remember the name so a returning player only types a code.
   useEffect(() => {
@@ -20,6 +23,8 @@ export default function Home() {
     } catch {
       /* private mode */
     }
+    const h = window.location.hostname;
+    setIsLocal(h === "localhost" || h === "127.0.0.1" || h === "[::1]");
   }, []);
 
   const remember = (n: string) => {
@@ -60,10 +65,50 @@ export default function Home() {
       <main className="wrap">
         <h1>Mafia</h1>
         <div className="err">
-          Not connected to Supabase yet. Copy <code>.env.local.example</code> to{" "}
-          <code>.env.local</code>, paste your project URL and anon key, then
-          restart the dev server. Setup steps are in the README.
+          Not connected to Supabase yet — <code>NEXT_PUBLIC_SUPABASE_URL</code>{" "}
+          and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> are missing.
         </div>
+
+        {/* Until we know where we are, show neither set of steps: dev
+            instructions on a live site sent people to the wrong place. */}
+        {isLocal === true && (
+          <div className="card">
+            <h2>Running locally</h2>
+            <ol className="small" style={{ paddingLeft: 18, margin: 0 }}>
+              <li>
+                Copy <code>.env.local.example</code> to <code>.env.local</code>.
+              </li>
+              <li>
+                Paste your project URL and anon key from Supabase →{" "}
+                <b>Project Settings → API</b>.
+              </li>
+              <li>Restart the dev server.</li>
+            </ol>
+          </div>
+        )}
+
+        {isLocal === false && (
+          <div className="card">
+            <h2>Deployed site</h2>
+            <ol className="small" style={{ paddingLeft: 18, margin: 0 }}>
+              <li>
+                In Vercel → <b>Settings → Environment Variables</b>, add both
+                keys with values from Supabase → <b>Project Settings → API</b>.
+              </li>
+              <li>
+                <b>Redeploy.</b> Environment variables are baked in at build
+                time, so an existing deployment will not pick them up.
+              </li>
+              <li>
+                In Supabase, enable <b>Authentication → Providers → Anonymous
+                sign-ins</b>, and run <code>supabase/schema.sql</code> in the
+                SQL editor if you have not yet.
+              </li>
+            </ol>
+          </div>
+        )}
+
+        <p className="muted small">Full steps are in the project README.</p>
       </main>
     );
   }
