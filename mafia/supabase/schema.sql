@@ -107,6 +107,28 @@ returns text language sql stable security definer set search_path = public as $$
   limit 1;
 $$;
 
+/*
+ * Membership tests used by the policies below.
+ *
+ * These MUST be SECURITY DEFINER. A policy on players that checks membership
+ * by selecting from players re-triggers itself and Postgres aborts with
+ * "infinite recursion detected in policy for relation players". Running the
+ * lookup as the definer bypasses RLS inside the function and breaks the loop.
+ */
+create or replace function is_member(p_room uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from players where room_id = p_room and user_id = auth.uid()
+  );
+$$;
+
+create or replace function owns_player(p_player uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from players where id = p_player and user_id = auth.uid()
+  );
+$$;
+
 -- ---------- row level security ----------
 
 alter table rooms            enable row level security;
@@ -118,55 +140,50 @@ alter table events           enable row level security;
 alter table private_results  enable row level security;
 alter table messages         enable row level security;
 
+-- Every policy below goes through is_member() / owns_player(), never a direct
+-- subquery on players -- see the recursion note on those functions.
+
 -- Only members can read a room. Joining does not need select access, because
 -- join_room() takes the code and runs as definer -- so there is no way to
 -- enumerate live games or harvest codes.
 drop policy if exists rooms_read on rooms;
 create policy rooms_read on rooms for select to authenticated
-  using (exists (select 1 from players p
-                 where p.room_id = rooms.id and p.user_id = auth.uid()));
+  using (is_member(rooms.id));
 
 -- Everyone in a room sees the roster (names, alive, seat) -- never roles.
 drop policy if exists players_read on players;
 create policy players_read on players for select to authenticated
-  using (exists (select 1 from players p2
-                 where p2.room_id = players.room_id and p2.user_id = auth.uid()));
+  using (is_member(players.room_id));
 
 -- You may read exactly one role row: your own.
 drop policy if exists roles_read_own on roles;
 create policy roles_read_own on roles for select to authenticated
-  using (exists (select 1 from players p
-                 where p.id = roles.player_id and p.user_id = auth.uid()));
+  using (owns_player(roles.player_id));
 
 -- You may read back your own night action (so a refresh still shows your pick)
 -- and nobody else's. Resolution still happens entirely server-side.
 drop policy if exists na_read_own on night_actions;
 create policy na_read_own on night_actions for select to authenticated
-  using (exists (select 1 from players p
-                 where p.id = night_actions.actor and p.user_id = auth.uid()));
+  using (owns_player(night_actions.actor));
 
 -- Live vote tally is public within the room: seeing the count is half the game.
 drop policy if exists votes_read on votes;
 create policy votes_read on votes for select to authenticated
-  using (exists (select 1 from players p
-                 where p.room_id = votes.room_id and p.user_id = auth.uid()));
+  using (is_member(votes.room_id));
 
 drop policy if exists events_read on events;
 create policy events_read on events for select to authenticated
-  using (exists (select 1 from players p
-                 where p.room_id = events.room_id and p.user_id = auth.uid()));
+  using (is_member(events.room_id));
 
 drop policy if exists pr_read_own on private_results;
 create policy pr_read_own on private_results for select to authenticated
-  using (exists (select 1 from players p
-                 where p.id = private_results.player_id and p.user_id = auth.uid()));
+  using (owns_player(private_results.player_id));
 
 -- Day chat: anyone in the room. Mafia chat: only mafia.
 drop policy if exists messages_read on messages;
 create policy messages_read on messages for select to authenticated
   using (
-    exists (select 1 from players p
-            where p.room_id = messages.room_id and p.user_id = auth.uid())
+    is_member(messages.room_id)
     and (messages.channel = 'day' or my_role(messages.room_id) = 'mafia')
   );
 
@@ -585,10 +602,13 @@ begin
 end $$;
 
 -- ---------- grants ----------
+-- is_member/owns_player are needed by the policies themselves: a policy
+-- expression is evaluated as the querying role, not as the table owner.
 grant execute on function
   create_room(text), join_room(text,text), leave_room(uuid), start_game(uuid),
   submit_night_action(uuid,uuid), cast_vote(uuid,uuid), send_message(uuid,text,text),
-  advance_phase(uuid), touch(uuid), my_role(uuid)
+  advance_phase(uuid), touch(uuid), my_role(uuid),
+  is_member(uuid), owns_player(uuid)
 to authenticated;
 
 revoke execute on function me(uuid), check_winner(uuid), end_game(uuid,text), new_code()
