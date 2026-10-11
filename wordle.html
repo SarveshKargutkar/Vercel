@@ -1396,22 +1396,23 @@
         const BASE = [100, 150, 200]; // Opener, Standard, Keystone
         const GLITCH_PTS = 25; // + per glitch in the word, − per time fooled
         const SWEEP_PTS = 100;
+        /* Short-session format: 3 rounds of 3 words. Everything below derives
+           from SCHED.length, so the length can be changed in one place. */
         const SCHED = [
-          { tier: "Boot", gl: [0, 0, 0] },
-          { tier: "Boot", gl: [0, 0, 1] },
-          { tier: "Signal", gl: [0, 1, 1] },
-          { tier: "Signal", gl: [1, 1, 1] },
-          { tier: "Static", gl: [1, 1, 2] },
-          { tier: "Static", gl: [1, 1, 2] },
+          { tier: "Signal", gl: [1, 1, 2] },
           { tier: "Corrupt", gl: [1, 2, 2] },
-          { tier: "Corrupt", gl: [2, 2, 2] },
-          { tier: "Meltdown", gl: [2, 2, 2] },
           { tier: "Kernel Panic", gl: [2, 2, 2] },
         ];
-        const PACE_SHARE = [
-          0.105, 0.208, 0.309, 0.411, 0.511, 0.61, 0.708, 0.805, 0.903, 1,
-        ];
-        const TARGET = { easy: 6400, standard: 7700, expert: 8900 };
+        const ROUNDS = SCHED.length,
+          WPR = 3,
+          TOTAL = ROUNDS * WPR;
+        /* Cumulative share of the target expected by the end of each round.
+           Back-weighted, because later rounds are worth more. */
+        const PACE_SHARE = [0.28, 0.6, 1];
+        /* Scaled from the 30-word targets (6400/7700/8900) to 9 words. Not a
+           flat 30%: glitch tiles now start on word 1, so every word carries
+           glitch bonus that the old warm-up rounds did not. */
+        const TARGET = { easy: 2050, standard: 2500, expert: 2900 };
         const DLABEL = { easy: "Easy", standard: "Standard", expert: "Expert" };
         const DSHORT = { easy: "Easy", standard: "Std", expert: "Exp" };
         const ROLE = ["Opener", "Standard", "Keystone"];
@@ -1515,9 +1516,10 @@
                 : i >= 300 && isTricky(w),
           );
           if (role < 2) {
-            const n = out.length;
-            if (r < 3) out = out.slice(0, Math.ceil(n / 3));
-            else if (r >= 7) out = out.slice(Math.floor(n / 3));
+            const n = out.length,
+              f = r / Math.max(1, ROUNDS - 1); // 0 at first round, 1 at last
+            if (f < 0.34) out = out.slice(0, Math.ceil(n / 3));
+            else if (f >= 0.67) out = out.slice(Math.floor(n / 3));
           }
           return out;
         }
@@ -1777,11 +1779,11 @@
             stickersDone: false,
             stickerSeen: [],
             freshStickers: [],
-            words: Array.from({ length: 30 }, (_, i) => ({
+            words: Array.from({ length: TOTAL }, (_, i) => ({
               rows: [],
               status: i ? "locked" : "active",
             })),
-            roundScores: Array(10).fill(null),
+            roundScores: Array(ROUNDS).fill(null),
           };
           ANSWERS = buildAnswers(seed);
           slotCache.clear();
@@ -1803,7 +1805,11 @@
             L: L5,
             k: R.gl[w],
             tier: R.tier,
-            drift: r >= 6 || (S.difficulty === "expert" && r >= 4),
+            /* glitch slots move between guesses in the final round (and from
+               the middle round on Expert) */
+            drift:
+              r >= ROUNDS - 1 ||
+              (S.difficulty === "expert" && r >= ROUNDS - 2),
           };
         }
         function pickSlots(rng, L, k) {
@@ -2046,7 +2052,7 @@
             rd = roundsDone();
           // ladder
           let lad = "";
-          for (let r = 0; r < 10; r++) {
+          for (let r = 0; r < ROUNDS; r++) {
             const sc = S.roundScores[r];
             let dots = "";
             for (let w = 0; w < 3; w++) {
@@ -2084,8 +2090,8 @@
           else {
             const d = doneTotal() - paceAt(rd);
             dtxt = `<span class="delta ${d >= 0 ? "up" : "dn"}">${d >= 0 ? "▲ +" : "▼ "}${d} vs pace after R${rd}</span>`;
-            if (d < 0 && rd < 10)
-              dtxt += `<div class="meta-line"><span>Need ≈ ${Math.ceil((X() - doneTotal()) / (10 - rd))}/round</span></div>`;
+            if (d < 0 && rd < ROUNDS)
+              dtxt += `<div class="meta-line"><span>Need ≈ ${Math.ceil((X() - doneTotal()) / (ROUNDS - rd))}/round</span></div>`;
           }
           $("paceDelta").innerHTML = dtxt;
           $("diffLbl").textContent = DLABEL[S.difficulty];
@@ -2127,7 +2133,7 @@
           const info = wordInfo(S.cur),
             last = info.w === 2;
           const label = last
-            ? info.r === 9
+            ? info.r === ROUNDS - 1
               ? "Final summary →"
               : "Round summary →"
             : "Next word →";
@@ -2394,7 +2400,7 @@
         }
         function nextRound(r) {
           closeModal();
-          if (r === 9) {
+          if (r === ROUNDS - 1) {
             S.phase = "done";
             save();
             renderAll();
@@ -2444,7 +2450,7 @@
           openModal(
             `<div class="kicker">How to play</div><h2 id="mTitle">GLITCHWORD</h2>
   <div class="howto">
-  <p>Solve <b>30 words</b> across <b>10 rounds</b> (3 words each). Each word gives you <b>6 guesses</b>. Beat the session by reaching the target score.</p>
+  <p>Solve <b>${TOTAL} words</b> across <b>${ROUNDS} rounds</b> (${WPR} words each). Each word gives you <b>${MAXG} guesses</b>. Beat the session by reaching the target score. Glitched tiles are in play from the <b>very first word</b>.</p>
   <h4>1 · Colours</h4>
   ${exampleRow("CRANE", ["G", "X", "Y", "X", "X"])}
   <ul><li><b style="color:var(--gw-green)">Green</b> right letter, right slot</li><li><b style="color:var(--gw-yellow)">Yellow</b> in the word, wrong slot</li><li><b>Gray</b> not in the word</li></ul>
@@ -2477,7 +2483,7 @@
   <tr><td>${tileHTML("A", "Y", true).replace('class="tile', 'style="--gw-tile:32px" class="tile')}</td><td><b>Yellow is true</b> — in word, elsewhere</td></tr>
   </tbody></table></div>
   <p><b>Don't get fooled:</b> if a flagged tile shows C <b>green</b>, C is absent — putting C back in that slot next guess costs <b>−25</b>. If it shows <b>gray</b>, that letter is correct — moving it away costs the same.</p>
-  <p>The keyboard won't colour letters seen only on glitched tiles — they get a hatched <b>?</b>. Rounds 2–6 glitch the <b>same column</b> every guess; from Round ${S.difficulty === "expert" ? 5 : 7} the glitch <b>drifts</b> row to row.</p>
+  <p>The keyboard won't colour letters seen only on glitched tiles — they get a hatched <b>?</b>. Early rounds glitch the <b>same column</b> every guess; from Round ${(S.difficulty === "expert" ? ROUNDS - 2 : ROUNDS - 1) + 1} the glitch <b>drifts</b> row to row.</p>
   <div class="btnrow"><button class="btn pri" type="button" data-close>Got it</button></div>`);
           PREFS.seenCoach = true;
           savePrefs();
@@ -2497,7 +2503,7 @@
           const inProgress =
             S.phase !== "done" && (S.cur > 0 || S.words[0].rows.length > 0);
           const html = `<div class="kicker">Session</div><h2 id="mTitle">New session</h2>
-   <p>Difficulty changes the target and assists — the 30 answers are the same for a given seed.</p>
+   <p>Difficulty changes the target and assists — the ${TOTAL} answers are the same for a given seed.</p>
    <div class="opt" id="optDiff">${["easy", "standard", "expert"].map((d) => `<button type="button" data-d="${d}" aria-pressed="${d === diff}"><b>${DLABEL[d]}</b><small>target ${TARGET[d]}</small></button>`).join("")}</div>
    <p id="diffNote" style="font-size:13px;margin-top:-6px"></p>
    <div class="opt two" id="optMode"><button type="button" data-m="daily" aria-pressed="true"><b>Daily</b><small>${today()}</small></button><button type="button" data-m="random" aria-pressed="false"><b>Random</b><small>fresh seed</small></button></div>
@@ -2509,7 +2515,7 @@
             easy: "Keyboard shows decoded colours; warns before you get fooled by a glitch.",
             standard: "The intended challenge.",
             expert:
-              "Hard mode (reuse confirmed hints); glitches drift from Round 5.",
+              `Hard mode (reuse confirmed hints); glitches drift from Round ${ROUNDS - 1}.`,
           };
           const sync = () => {
             document
@@ -2569,7 +2575,7 @@
         function showSummary(r) {
           const { rs, tot, pace, d, rows } = summaryHTML(r);
           SFX.round(rs.all);
-          const left = 9 - r,
+          const left = ROUNDS - 1 - r,
             need = left > 0 ? Math.ceil((X() - tot) / left) : 0;
           openModal(
             `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-right:40px"><div class="kicker">Round ${r + 1} · ${SCHED[r].tier} — complete</div>${rs.all ? `<span class="chip" style="border-color:var(--gw-green);color:var(--gw-green)">SWEEP +${SWEEP_PTS}</span>` : ""}</div>
@@ -2579,7 +2585,7 @@
    <div style="font:13px var(--gw-mono)">Session <b>${tot}</b> / ${X()} · pace ${pace} · <span class="delta ${d >= 0 ? "up" : "dn"}">${d >= 0 ? "▲ +" + d + " ahead" : "▼ " + -d + " behind"}</span></div>
    <div class="pace"><div class="fill" style="width:${Math.min(100, (tot / X()) * 100)}%"></div><div class="mark" style="left:${Math.min(100, (pace / X()) * 100)}%"><span style="${pace / X() > 0.8 ? "left:auto;right:0;transform:none" : ""}">PACE ${pace}</span></div></div>
    ${d < 0 && left > 0 ? `<p style="font-size:13px">Need about <b>${need}</b> per round for the last ${left} round${left > 1 ? "s" : ""}.</p>` : ""}
-   <div class="btnrow"><button class="btn pri" type="button" id="goNext">${r === 9 ? "See results →" : "Next round →"}</button><button class="btn" type="button" id="goRev">Review boards</button></div>`,
+   <div class="btnrow"><button class="btn pri" type="button" id="goNext">${r === ROUNDS - 1 ? "See results →" : "Next round →"}</button><button class="btn" type="button" id="goRev">Review boards</button></div>`,
             { cls: "glow" },
           );
           $("goNext").onclick = () => nextRound(r);
@@ -2598,7 +2604,7 @@
         function showReview(back) {
           let html = `<div class="kicker">Review</div><h2 id="mTitle">Boards</h2><p>Raw colours as you saw them; ⌁ marks glitched tiles.</p>`;
           let any = false;
-          for (let r = 0; r < 10; r++) {
+          for (let r = 0; r < ROUNDS; r++) {
             let ws = "";
             for (let w = 0; w < 3; w++) {
               const i = r * 3 + w,
@@ -2627,7 +2633,7 @@
             tiles = 0,
             sweeps = 0;
           const squares = [];
-          for (let i = 0; i < 30; i++) {
+          for (let i = 0; i < TOTAL; i++) {
             const inf = wordInfo(i);
             if (inf.solved) {
               solved++;
@@ -2645,7 +2651,7 @@
               !inf.solved ? "⬛" : inf.g <= 3 ? "🟩" : inf.g <= 5 ? "🟨" : "🟧",
             );
           }
-          for (let r = 0; r < 10; r++) {
+          for (let r = 0; r < ROUNDS; r++) {
             let a = true;
             for (let w = 0; w < 3; w++)
               if (S.words[r * 3 + w].status !== "solved") a = false;
@@ -2653,8 +2659,9 @@
           }
           return {
             solved,
-            acc: Math.round((solved / 30) * 100),
-            eff: Math.round((effSum / 90) * 100),
+            acc: Math.round((solved / TOTAL) * 100),
+            /* efficiency is against a perfect session: every word on guess 1 */
+            eff: Math.round((effSum / (TOTAL * EFF[1])) * 100),
             avg: solved ? (gSum / solved).toFixed(1) : "—",
             decode: tiles ? Math.round((1 - mis / tiles) * 100) : 100,
             mis,
@@ -2690,11 +2697,12 @@
             won = total >= X(),
             s = sessionStats();
           const lines = [];
-          for (let r = 0; r < 10; r += 5)
+          /* one line per 5 rounds, so a short session is a single line */
+          for (let r = 0; r < ROUNDS; r += 5)
             lines.push(
-              [0, 1, 2, 3, 4]
+              Array.from({ length: Math.min(5, ROUNDS - r) }, (_, k) => k)
                 .map((k) =>
-                  s.squares.slice((r + k) * 3, (r + k) * 3 + 3).join(""),
+                  s.squares.slice((r + k) * WPR, (r + k) * WPR + WPR).join(""),
                 )
                 .join(" "),
             );
@@ -2732,7 +2740,7 @@
           const st = Object.assign({ high: {} }, store.get(K_STATS) || {});
           let worst = 0,
             wd = Infinity;
-          for (let r = 0; r < 10; r++) {
+          for (let r = 0; r < ROUNDS; r++) {
             const dd = (S.roundScores[r] || 0) - roundExpected(r);
             if (dd < wd) {
               wd = dd;
@@ -2872,7 +2880,7 @@
           avg < 1.5 ? 3 : avg < 2.5 ? 2 : avg < 3.5 ? 1 : 0;
 
         function flawlessRound(c) {
-          for (let r = 0; r < 10; r++) {
+          for (let r = 0; r < ROUNDS; r++) {
             let ok = true;
             for (let w = 0; w < 3; w++) {
               const i = c.infos[r * 3 + w];
@@ -2886,7 +2894,7 @@
           return -1;
         }
         function trailedLate() {
-          for (let r = 6; r < 10; r++) {
+          for (let r = ROUNDS - 2; r < ROUNDS; r++) {
             if (S.roundScores[r] === null) continue;
             const tot = S.roundScores
               .slice(0, r + 1)
@@ -2986,7 +2994,7 @@
            and nothing else, so engine changes have a single blast radius. */
         function stickerCtx() {
           const infos = [];
-          for (let i = 0; i < 30; i++) infos.push(wordInfo(i));
+          for (let i = 0; i < TOTAL; i++) infos.push(wordInfo(i));
           const total = doneTotal();
           return {
             infos,
@@ -3508,16 +3516,23 @@
           const x0 = 80,
             wTot = 920,
             gap = 10,
-            segW = (wTot - gap * 9) / 10;
-          for (let r = 0; r < 10; r++) {
+            segW = (wTot - gap * (ROUNDS - 1)) / ROUNDS;
+          for (let r = 0; r < ROUNDS; r++) {
             const x = x0 + r * (segW + gap);
             c.fillStyle = cardTier(r);
             rrect(c, x, 414, segW, 62, 8);
             c.fill();
-            c.fillStyle = "rgba(10,13,20,.8)";
-            c.font = "700 20px " + mono;
+            c.fillStyle = "rgba(10,13,20,.85)";
+            /* fewer, wider segments can carry the tier name as well */
+            c.font = "700 " + (ROUNDS <= 5 ? 24 : 20) + "px " + mono;
             c.textAlign = "center";
-            c.fillText(String(r + 1), x + segW / 2, 453);
+            c.fillText(
+              ROUNDS <= 5
+                ? "R" + (r + 1) + " · " + SCHED[r].tier.toUpperCase()
+                : String(r + 1),
+              x + segW / 2,
+              453,
+            );
           }
           c.textAlign = "left";
           c.fillStyle = "#6b7280";
