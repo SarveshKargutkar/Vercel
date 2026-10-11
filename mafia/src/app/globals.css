@@ -1,0 +1,337 @@
+:root {
+  --bg: #0d1016;
+  --surface: #161b24;
+  --surface-2: #1f2630;
+  --line: #2b3240;
+  --text: #e8ebf0;
+  --muted: #949db0;
+  --accent: #e0b64c;
+  --danger: #e5484d;
+  --good: #3fb950;
+  --night: #5b6ee8;
+  --radius: 14px;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  overscroll-behavior-y: none;
+}
+
+/* Phone-first: one column, thumb-reachable, never wider than a tablet. */
+.wrap {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+  min-height: 100dvh;
+}
+
+h1 {
+  font-size: 30px;
+  letter-spacing: 0.14em;
+  margin: 28px 0 4px;
+  text-transform: uppercase;
+}
+h2 {
+  font-size: 19px;
+  margin: 0 0 10px;
+}
+.sub {
+  color: var(--muted);
+  margin: 0 0 26px;
+}
+
+/* The one line that tells you what to do right now. */
+.instruction {
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 1.3;
+  margin: 0 0 4px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+input[type="text"] {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+input[type="text"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.code-input {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 15px 18px;
+  width: 100%;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #241c05;
+}
+button.ghost {
+  background: transparent;
+}
+button.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.row {
+  display: flex;
+  gap: 10px;
+}
+.row > * {
+  flex: 1;
+}
+
+/* ---- room header ---- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0 10px;
+}
+.code-chip {
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  font-size: 20px;
+}
+.timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--accent);
+}
+.timer.low {
+  color: var(--danger);
+}
+.phase-banner {
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+}
+.phase-night {
+  background: linear-gradient(160deg, #1b2347, #121726);
+  border-color: #2f3b6b;
+}
+.phase-day {
+  background: linear-gradient(160deg, #2c2614, #19160e);
+  border-color: #4a3f1d;
+}
+.phase-vote {
+  background: linear-gradient(160deg, #331a1c, #1d1113);
+  border-color: #5c2a2e;
+}
+.phase-ended {
+  background: var(--surface);
+}
+
+/* ---- player grid: big tap targets ---- */
+.players {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.player {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  min-height: 74px;
+  justify-content: center;
+  position: relative;
+}
+.player .pname {
+  font-weight: 650;
+  font-size: 16px;
+}
+.player .pmeta {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.player.selected {
+  border-color: var(--accent);
+  background: #2a2412;
+}
+.player.dead {
+  opacity: 0.4;
+}
+.player.you {
+  box-shadow: inset 3px 0 0 var(--night);
+}
+.tally {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  min-width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+}
+
+/* ---- role card ---- */
+.role {
+  text-align: center;
+  padding: 22px 16px;
+}
+.role .rname {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.role.mafia .rname {
+  color: var(--danger);
+}
+.role.detective .rname {
+  color: var(--night);
+}
+.role.doctor .rname {
+  color: var(--good);
+}
+.role.villager .rname {
+  color: var(--muted);
+}
+
+/* ---- log + chat ---- */
+.log {
+  max-height: 190px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+.log div {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+.log div:last-child {
+  border-bottom: 0;
+  color: var(--text);
+}
+.note {
+  background: #141d33;
+  border: 1px solid #2f3b6b;
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 14px;
+  margin-bottom: 9px;
+}
+.chat {
+  max-height: 210px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+.msg {
+  font-size: 14.5px;
+  padding: 4px 0;
+}
+.msg b {
+  color: var(--accent);
+}
+.chat-mafia .msg b {
+  color: var(--danger);
+}
+.chatbar {
+  display: flex;
+  gap: 8px;
+}
+.chatbar input {
+  margin: 0;
+}
+.chatbar button {
+  width: auto;
+  padding: 14px 18px;
+}
+
+.err {
+  background: #3a1518;
+  border: 1px solid var(--danger);
+  color: #ffc9cb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-size: 14.5px;
+}
+.center {
+  text-align: center;
+}
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 13.5px;
+}
+.spacer {
+  height: 10px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .phase-banner {
+    animation: rise 0.3s ease both;
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+}

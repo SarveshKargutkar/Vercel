@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "serve", "-l", "4321", "."],
       "port": 4321
+    },
+    {
+      "name": "mafia",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "mafia", "run", "dev"],
+      "port": 3000
     }
   ]
 }
