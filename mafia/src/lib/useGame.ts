@@ -209,6 +209,13 @@ export function useGame(code: string) {
 
   const act = {
     start: () => rpc("start_game", { p_room: room!.id }),
+    setRoles: (mafia: number, detective: number, doctor: number) =>
+      rpc("set_roles", {
+        p_room: room!.id,
+        p_mafia: mafia,
+        p_detective: detective,
+        p_doctor: doctor,
+      }),
     night: (target: string) =>
       rpc("submit_night_action", { p_room: room!.id, p_target: target }),
     vote: (target: string) => rpc("cast_vote", { p_room: room!.id, p_target: target }),

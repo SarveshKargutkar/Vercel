@@ -6,9 +6,17 @@ const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 /** True when the app has been pointed at a Supabase project. */
 export const configured = Boolean(url && key && !url.includes("YOUR-PROJECT"));
 
-export const supabase = createClient(url ?? "http://localhost", key ?? "anon", {
-  auth: { persistSession: true, autoRefreshToken: true },
-});
+/*
+ * The placeholders must use || rather than ??: next.config resolves missing
+ * variables to "", which ?? would happily pass through, and createClient("")
+ * throws "supabaseUrl is required" — during prerender that fails the whole
+ * build, so an unconfigured deploy could never even reach the setup screen.
+ */
+export const supabase = createClient(
+  url || "https://placeholder.supabase.co",
+  key || "placeholder-anon-key",
+  { auth: { persistSession: true, autoRefreshToken: true } },
+);
 
 /**
  * Players never make an account. Anonymous sign-in still gives each device a

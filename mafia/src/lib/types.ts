@@ -9,6 +9,9 @@ export type Room = {
   phase_ends_at: string | null;
   host_user: string;
   winner: "mafia" | "village" | null;
+  cfg_mafia: number;
+  cfg_detective: number;
+  cfg_doctor: number;
 };
 
 export type Player = {

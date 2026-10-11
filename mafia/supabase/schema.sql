@@ -20,8 +20,17 @@ create table if not exists rooms (
   phase_ends_at   timestamptz,
   host_user       uuid not null,
   winner          text,                            -- mafia|village
-  created_at      timestamptz not null default now()
+  created_at      timestamptz not null default now(),
+  -- host-configurable role counts; everyone left over is a villager
+  cfg_mafia       int not null default 1,
+  cfg_detective   int not null default 1,
+  cfg_doctor      int not null default 1
 );
+
+-- for databases provisioned before role counts existed
+alter table rooms add column if not exists cfg_mafia     int not null default 1;
+alter table rooms add column if not exists cfg_detective int not null default 1;
+alter table rooms add column if not exists cfg_doctor    int not null default 1;
 
 create table if not exists players (
   id         uuid primary key default gen_random_uuid(),
@@ -305,10 +314,41 @@ end $$;
 
 -- ---------- starting a game ----------
 
+-- Host sets how many of each special role. Lobby only, host only.
+create or replace function set_roles(
+  p_room uuid, p_mafia int, p_detective int, p_doctor int
+) returns void language plpgsql security definer set search_path = public as $$
+declare v_room rooms; n int;
+begin
+  select * into v_room from rooms where id = p_room;
+  if v_room.id is null then raise exception 'No such room.'; end if;
+  if v_room.host_user <> auth.uid() then raise exception 'Only the host can change roles.'; end if;
+  if v_room.phase <> 'lobby' then raise exception 'The game has already started.'; end if;
+
+  if p_mafia < 1 then raise exception 'There must be at least one mafia.'; end if;
+  if p_detective < 0 or p_doctor < 0 then raise exception 'Counts cannot be negative.'; end if;
+
+  select count(*) into n from players where room_id = p_room;
+  -- Only validate against the roster once it could actually start; the host
+  -- may well set roles before everyone has joined.
+  if n >= 4 then
+    if p_mafia + p_detective + p_doctor > n then
+      raise exception 'That is more special roles than players.';
+    end if;
+    if p_mafia * 2 >= n then
+      raise exception 'Mafia must be fewer than half the players.';
+    end if;
+  end if;
+
+  update rooms set cfg_mafia = p_mafia, cfg_detective = p_detective,
+                   cfg_doctor = p_doctor
+   where id = p_room;
+end $$;
+
 create or replace function start_game(p_room uuid)
 returns void language plpgsql security definer set search_path = public as $$
 declare
-  v_room rooms; n int; n_mafia int; ids uuid[]; i int;
+  v_room rooms; n int; n_mafia int; n_det int; n_doc int; ids uuid[]; i int;
 begin
   select * into v_room from rooms where id = p_room;
   if v_room.id is null then raise exception 'No such room.'; end if;
@@ -318,8 +358,18 @@ begin
   select count(*) into n from players where room_id = p_room;
   if n < 4 then raise exception 'Need at least 4 players.'; end if;
 
-  -- 1 mafia per 4 players, min 1
-  n_mafia := greatest(1, n / 4);
+  n_mafia := greatest(1, coalesce(v_room.cfg_mafia, 1));
+  n_det   := greatest(0, coalesce(v_room.cfg_detective, 1));
+  n_doc   := greatest(0, coalesce(v_room.cfg_doctor, 1));
+
+  -- Re-checked here, not just in set_roles: players can leave the lobby after
+  -- the counts were chosen, which can turn a valid setup into an unwinnable one.
+  if n_mafia + n_det + n_doc > n then
+    raise exception 'More special roles than players. Adjust the roles.';
+  end if;
+  if n_mafia * 2 >= n then
+    raise exception 'Mafia must be fewer than half the players. Adjust the roles.';
+  end if;
 
   select array_agg(id order by random()) into ids from players where room_id = p_room;
 
@@ -328,9 +378,9 @@ begin
     insert into roles (player_id, room_id, role) values (
       ids[i], p_room,
       case
-        when i <= n_mafia            then 'mafia'
-        when i = n_mafia + 1         then 'detective'
-        when i = n_mafia + 2 and n >= 5 then 'doctor'
+        when i <= n_mafia                   then 'mafia'
+        when i <= n_mafia + n_det           then 'detective'
+        when i <= n_mafia + n_det + n_doc   then 'doctor'
         else 'villager'
       end
     );
@@ -475,8 +525,8 @@ create or replace function advance_phase(p_room uuid)
 returns void language plpgsql security definer set search_path = public as $$
 declare
   v_room rooms; v_me players; v_force boolean;
-  v_kill uuid; v_save uuid; v_dead uuid; v_name text;
-  v_det uuid; v_det_target uuid; v_det_role text;
+  v_kill uuid; v_saved boolean; v_dead uuid; v_name text;
+  v_role text;
   v_out uuid; v_top int; v_tied int; v_win text;
 begin
   select * into v_room from rooms where id = p_room for update;
@@ -500,10 +550,15 @@ begin
       where room_id = p_room and day = v_room.day and action = 'kill'
       group by target order by count(*) desc, target limit 1;
 
-    select target into v_save from night_actions
-      where room_id = p_room and day = v_room.day and action = 'save' limit 1;
+    -- Any doctor protecting the target is enough, so this must consider every
+    -- save, not just one -- the host may have dealt more than one doctor.
+    select exists (
+      select 1 from night_actions
+       where room_id = p_room and day = v_room.day
+         and action = 'save' and target = v_kill
+    ) into v_saved;
 
-    if v_kill is not null and (v_save is null or v_save <> v_kill) then
+    if v_kill is not null and not v_saved then
       v_dead := v_kill;
       update players set alive = false where id = v_dead;
       select name into v_name from players where id = v_dead;
@@ -516,17 +571,17 @@ begin
                else 'Someone was attacked — but the doctor got there first.' end);
     end if;
 
-    -- detective result, delivered privately
-    select actor, target into v_det, v_det_target from night_actions
-      where room_id = p_room and day = v_room.day and action = 'investigate' limit 1;
-    if v_det is not null then
-      select role into v_det_role from roles where player_id = v_det_target;
-      select name into v_name from players where id = v_det_target;
-      insert into private_results (room_id, player_id, body)
-        values (p_room, v_det,
-          'Night ' || v_room.day || ': ' || v_name || ' is ' ||
-          case when v_det_role = 'mafia' then 'MAFIA.' else 'not mafia.' end);
-    end if;
+    -- Detective results, delivered privately. One row per investigating
+    -- detective, since there may be several.
+    insert into private_results (room_id, player_id, body)
+    select p_room, na.actor,
+           'Night ' || v_room.day || ': ' || tp.name || ' is ' ||
+           case when tr.role = 'mafia' then 'MAFIA.' else 'not mafia.' end
+      from night_actions na
+      join players tp on tp.id = na.target
+      join roles   tr on tr.player_id = na.target
+     where na.room_id = p_room and na.day = v_room.day
+       and na.action = 'investigate';
 
     v_win := check_winner(p_room);
     if v_win is not null then perform end_game(p_room, v_win); return; end if;
@@ -577,10 +632,10 @@ begin
     else
       update players set alive = false where id = v_out;
       select name into v_name from players where id = v_out;
-      select role into v_det_role from roles where player_id = v_out;
+      select role into v_role from roles where player_id = v_out;
       insert into events (room_id, day, body)
         values (p_room, v_room.day,
-          v_name || ' was voted out. They were ' || upper(v_det_role) || '.');
+          v_name || ' was voted out. They were ' || upper(v_role) || '.');
     end if;
 
     v_win := check_winner(p_room);
@@ -607,7 +662,7 @@ end $$;
 grant execute on function
   create_room(text), join_room(text,text), leave_room(uuid), start_game(uuid),
   submit_night_action(uuid,uuid), cast_vote(uuid,uuid), send_message(uuid,text,text),
-  advance_phase(uuid), touch(uuid), my_role(uuid),
+  advance_phase(uuid), touch(uuid), my_role(uuid), set_roles(uuid,int,int,int),
   is_member(uuid), owns_player(uuid)
 to authenticated;
 

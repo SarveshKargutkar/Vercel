@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useGame } from "@/lib/useGame";
+import { useNarrator } from "@/lib/useNarrator";
 import { readableError } from "@/lib/supabase";
 import { ROLE_LABEL, actsAtNight, instruction } from "@/lib/types";
 import PlayerGrid from "@/components/PlayerGrid";
+import RoleSetup from "@/components/RoleSetup";
 import Chat from "@/components/Chat";
 
 export default function RoomPage() {
@@ -19,6 +21,8 @@ export default function RoomPage() {
   const alive = g.players.filter((p) => p.alive);
   const phase = g.room?.phase ?? "lobby";
   const amAlive = g.me?.alive ?? false;
+  /* Narration runs on the host's device only, so the table hears one voice. */
+  const narrator = useNarrator(g.events, g.isHost);
 
   /* Live vote tally for the current day. */
   const tallies = useMemo(() => {
@@ -119,6 +123,31 @@ export default function RoomPage() {
             <h2>Players ({g.players.length})</h2>
             <PlayerGrid players={g.players} meId={g.me.id} selectable={false} />
           </div>
+
+          <RoleSetup
+            room={g.room}
+            playerCount={g.players.length}
+            canEdit={g.isHost}
+            onChange={(m, d, k) => g.act.setRoles(m, d, k)}
+          />
+
+          {g.isHost && narrator.supported && (
+            <div className="card narrator">
+              <div>
+                <b>Narrator voice</b>
+                <div className="muted small">
+                  Reads the story aloud on this phone only.
+                </div>
+              </div>
+              <button
+                className={narrator.on ? "live" : ""}
+                onClick={narrator.toggle}
+                aria-pressed={narrator.on}
+              >
+                {narrator.on ? "On" : "Off"}
+              </button>
+            </div>
+          )}
 
           {g.isHost ? (
             <button
@@ -228,7 +257,19 @@ export default function RoomPage() {
             ) : null)}
 
           <div className="card">
-            <h2>What happened</h2>
+            <div className="narrator" style={{ marginBottom: 10 }}>
+              <h2 style={{ margin: 0 }}>What happened</h2>
+              {g.isHost && narrator.supported && (
+                <button
+                  className={narrator.on ? "live" : ""}
+                  onClick={narrator.toggle}
+                  aria-pressed={narrator.on}
+                  aria-label="Narrator voice"
+                >
+                  {narrator.on ? "🔊 Narrating" : "🔇 Narrator off"}
+                </button>
+              )}
+            </div>
             <div className="log">
               {g.events.slice(-14).map((e) => (
                 <div key={e.id}>{e.body}</div>

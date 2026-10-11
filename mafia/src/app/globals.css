@@ -335,3 +335,57 @@ button.danger {
     }
   }
 }
+
+/* ---- role steppers (lobby) ---- */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.stepper:last-of-type {
+  border-bottom: 0;
+}
+.stepper-label {
+  font-weight: 600;
+}
+.stepper-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stepper-controls button {
+  width: 44px; /* thumb-sized, not icon-sized */
+  height: 44px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+.stepper-value {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+}
+
+/* ---- narrator toggle ---- */
+.narrator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.narrator button {
+  width: auto;
+  padding: 11px 16px;
+  white-space: nowrap;
+}
+.narrator button.live {
+  border-color: var(--good);
+  color: var(--good);
+}
