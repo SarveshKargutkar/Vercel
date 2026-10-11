@@ -61,6 +61,9 @@ export default function Home() {
   }
 
   if (!configured) {
+    const seenNames = (process.env.NEXT_PUBLIC_SUPABASE_ENV_SEEN ?? "")
+      .split(",")
+      .filter(Boolean);
     return (
       <main className="wrap">
         <h1>Mafia</h1>
@@ -107,6 +110,35 @@ export default function Home() {
             </ol>
           </div>
         )}
+
+        {/* Names only -- never values, since a service-role key can live
+            under one of these and must not reach a browser. */}
+        <div className="card">
+          <h2>What this build saw</h2>
+          {seenNames.length ? (
+            <>
+              <p className="small muted" style={{ marginTop: 0 }}>
+                Supabase-related variables present at build time:
+              </p>
+              <div className="small" style={{ wordBreak: "break-all" }}>
+                {seenNames.map((n) => (
+                  <div key={n}>
+                    <code>{n}</code>
+                  </div>
+                ))}
+              </div>
+              <p className="small muted" style={{ marginBottom: 0 }}>
+                If your URL and key are in that list under different names, tell
+                me the names and I&apos;ll map them.
+              </p>
+            </>
+          ) : (
+            <p className="small muted" style={{ margin: 0 }}>
+              No Supabase variables were visible at build time at all. If you
+              added the integration after the last build, redeploy.
+            </p>
+          )}
+        </div>
 
         <p className="muted small">Full steps are in the project README.</p>
       </main>
